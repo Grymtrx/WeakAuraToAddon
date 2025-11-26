@@ -1,77 +1,79 @@
--- ArenaWinrate – Solo / 2v2 / 3v3 / Rated BG Blitz / Rated BG
+-- ArenaWinrate
 
-local function ResolvePath(path)
-    -- Turns "ConquestFrame.RatedSoloShuffle.CurrentRating" into the actual object
-    local obj = _G
-    for segment in string.gmatch(path, "[^%.]+") do
-        obj = obj and obj[segment]
-        if not obj then return nil end
-    end
-    return obj
+-- Bracket definition helper
+local function B(id, key, anchorPath)
+    return { id = id, key = key, anchorPath = anchorPath }
 end
 
-local brackets = {
-    {
-        id = 7,
-        key = "Solo",
-        anchorPath = "ConquestFrame.RatedSoloShuffle.CurrentRating",
-    },
-    {
-        id = 1,
-        key = "Two",
-        anchorPath = "ConquestFrame.Arena2v2.CurrentRating",
-    },
-    {
-        id = 2,
-        key = "Three",
-        anchorPath = "ConquestFrame.Arena3v3.CurrentRating",
-    },
-    {
-        id = 10, -- Rated BG Blitz
-        key = "BGBlitz",
-        anchorPath = "ConquestFrame.RatedBGBlitz.CurrentRating",
-    },
-    {
-        id = 3,  -- Rated Battlegrounds (10v10)
-        key = "BG",
-        anchorPath = "ConquestFrame.RatedBG.CurrentRating",
-    },
+local BRACKETS = {
+    B(7,  "Solo",   "ConquestFrame.RatedSoloShuffle.CurrentRating"),
+    B(1,  "2v2",    "ConquestFrame.Arena2v2.CurrentRating"),
+    B(2,  "3v3",    "ConquestFrame.Arena3v3.CurrentRating"),
+    B(10, "BGBlitz","ConquestFrame.RatedBGBlitz.CurrentRating"),
+    B(3,  "BG",     "ConquestFrame.RatedBG.CurrentRating"),
 }
 
--- Create one small frame per bracket
-for _, b in ipairs(brackets) do
-    local f = CreateFrame("Frame", "ArenaWinrateFrame_" .. b.key, UIParent)
-    f:SetFrameStrata("DIALOG")
-    f:SetSize(140, 20)
-    f:Hide()
+-- Create frames + tooltip for each bracket
+local function CreateBracketFrames()
+    for _, b in ipairs(BRACKETS) do
+        if not b.frame then
+            local f = CreateFrame("Frame", "ArenaWinrateFrame_" .. b.key, UIParent)
+            f:SetFrameStrata("DIALOG")
+            f:SetSize(1, 10)  -- height fixed, width set from text
+            f:Hide()
 
-    local text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    text:ClearAllPoints()
-    -- Left-anchored so the text only grows to the right
-    text:SetPoint("LEFT", f, "LEFT", 0, 9)
-    text:SetJustifyH("LEFT")
-    text:SetTextColor(0.584, 0.580, 0.580, 0.75) -- #959494 @ ~75% alpha
+            local text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            text:ClearAllPoints()
+            text:SetPoint("LEFT", f, "LEFT", 0, 2)   -- left-aligned, grows right
+            text:SetJustifyH("LEFT")
+            text:SetTextColor(0.584, 0.580, 0.580, 0.75)
 
-    do
-        local font, size, flags = text:GetFont()
-        text:SetFont(font, size, "OUTLINE")
+            local font, size = text:GetFont()
+            text:SetFont(font, size, "OUTLINE")
+
+            f.text = text
+            b.frame = f
+
+            f:SetScript("OnEnter", function(self)
+                if not self:IsShown() then return end
+                local t = self.text and self.text:GetText()
+                if not t or t == "" then return end
+
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:AddLine("Wins - Losses (Winrate%)", 0.9, 0.9, 0.9)
+                GameTooltip:Show()
+            end)
+
+            f:SetScript("OnLeave", function()
+                GameTooltip:Hide()
+            end)
+        end
     end
-
-    f.text = text
-    b.frame = f
 end
 
--- Returns "wins - losses (xx.x%)" or "" if bracket has no games
+-- Resolve and cache each bracket's CurrentRating fontstring
+local function ResolveAnchors()
+    for _, b in ipairs(BRACKETS) do
+        if not b.anchor then
+            local obj = _G
+            for segment in string.gmatch(b.anchorPath, "[^%.]+") do
+                obj = obj and obj[segment]
+                if not obj then break end
+            end
+            b.anchor = obj
+        end
+    end
+end
+
+-- Returns "wins - losses (xx.x%)" or "" if no games played
 local function GetStats(id)
     local total, wins
 
     if id == 7 then
-        -- Solo Shuffle
-        total = select(12, GetPersonalRatedInfo(id))
+        total = select(12, GetPersonalRatedInfo(id)) -- Solo Shuffle
         wins  = select(13, GetPersonalRatedInfo(id))
     else
-        -- 2v2 / 3v3 / BG / BGBlitz
-        total = select(4, GetPersonalRatedInfo(id))
+        total = select(4, GetPersonalRatedInfo(id))  -- 2s / 3s / BG / BGBlitz
         wins  = select(5, GetPersonalRatedInfo(id))
     end
 
@@ -84,74 +86,42 @@ local function GetStats(id)
     return string.format("%d - %d (%.1f%%)", wins, losses, winrate)
 end
 
--- Check if the specific bracket row (its parent) is actually visible
-local function IsBracketRowVisible(b)
-    if not ConquestFrame or not ConquestFrame:IsShown() then
-        return false
-    end
-
-    local anchor = ResolvePath(b.anchorPath)
-    if not anchor then
-        return false
-    end
-
-    -- Most of those paths point to a FontString; use its parent row
-    local row = anchor:GetParent()
-    if row and row.IsVisible and row:IsVisible() then
-        return true
-    end
-
-    return false
-end
-
-local function PositionBracket(b)
-    if not b.frame then return end
-
-    b.frame:ClearAllPoints()
-
-    local anchor = ResolvePath(b.anchorPath)
-    if anchor then
-        -- Lock LEFT edges so there’s no horizontal drift between brackets
-        b.frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
-    else
-        -- No anchor: hide this bracket’s frame
-        b.frame:Hide()
-    end
-end
-
 local function UpdateBracket(b)
-    if not b.frame then return end
+    local frame = b.frame
+    if not frame or not ConquestFrame or not ConquestFrame:IsShown() then
+        if frame then frame:Hide() end
+        return
+    end
 
-    -- Require the bracket row to be visible
-    if not IsBracketRowVisible(b) then
-        b.frame:Hide()
+    local anchor = b.anchor
+    if not anchor or not anchor:IsVisible() then
+        frame:Hide()
         return
     end
 
     local wlr = GetStats(b.id)
     if wlr == "" then
-        b.frame:Hide()
+        frame:Hide()
         return
     end
 
-    b.frame.text:SetText(wlr)
-    PositionBracket(b)
-    b.frame:Show()
-end
+    frame.text:SetText(wlr)
 
-local function PositionAll()
-    for _, b in ipairs(brackets) do
-        PositionBracket(b)
-    end
+    local w = frame.text:GetStringWidth() or 0
+    frame:SetWidth(w + 4)
+
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
+    frame:Show()
 end
 
 local function UpdateAll()
-    for _, b in ipairs(brackets) do
+    for _, b in ipairs(BRACKETS) do
         UpdateBracket(b)
     end
 end
 
--- Driver frame
+-- Event driver
 local driver = CreateFrame("Frame")
 driver:RegisterEvent("ADDON_LOADED")
 driver:RegisterEvent("PVP_RATED_STATS_UPDATE")
@@ -159,31 +129,26 @@ driver:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 driver:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == "Blizzard_PVPUI" then
+        CreateBracketFrames()
+        ResolveAnchors()
+
         if ConquestFrame then
             ConquestFrame:HookScript("OnShow", function()
-                PositionAll()
+                ResolveAnchors()
                 UpdateAll()
             end)
 
             ConquestFrame:HookScript("OnHide", function()
-                for _, b in ipairs(brackets) do
-                    if b.frame then
-                        b.frame:Hide()
-                    end
+                for _, b in ipairs(BRACKETS) do
+                    local f = b.frame
+                    if f then f:Hide() end
                 end
             end)
         end
 
-    elseif event == "PVP_RATED_STATS_UPDATE" or event == "PLAYER_ENTERING_WORLD" then
-        if ConquestFrame and ConquestFrame:IsShown() then
-            UpdateAll()
-        end
+    elseif (event == "PVP_RATED_STATS_UPDATE" or event == "PLAYER_ENTERING_WORLD")
+        and ConquestFrame and ConquestFrame:IsShown()
+    then
+        UpdateAll()
     end
 end)
-
--- Slash command: /aw to force reposition + update while PvP window is open
-SLASH_AW1 = "/aw"
-SlashCmdList.AW = function()
-    PositionAll()
-    UpdateAll()
-end

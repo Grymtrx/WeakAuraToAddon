@@ -1,0 +1,23 @@
+PVPQTimes – Credits & Acknowledgements
+--------------------------------------
+
+This addon was created by Greymatter/Grymtrx.
+
+It was inspired by and partially based on the following works:
+
+- "PvP Queue" WeakAura by Vonnycakes
+  * Source: https://wago.io/Wk9Jik5R4/2
+  * Reused concepts:
+    - Use of GetBattlefieldEstimatedWaitTime / GetBattlefieldTimeWaited
+    - UPDATE_BATTLEFIELD_STATUS-based triggering
+
+- "MMRTracker" by RGBDEV
+  * Source: https://www.curseforge.com/wow/addons/mmr-tracker
+  * Reused concepts:
+    - Using C_PvP.GetScoreInfoByPlayerGuid to track prematch/postmatch MMR
+    - Bracket ID mapping and region handling ideas
+
+All code in this addon has been rewritten and adapted to fit the needs of PVPQTimes,
+but the above projects were used as references for logic and structure.
+
+If any original authors would like attribution updated or modified, please reach out.

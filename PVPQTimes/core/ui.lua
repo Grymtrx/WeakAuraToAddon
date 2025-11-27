@@ -44,6 +44,38 @@ local f = text:GetFont()
 text:SetFont(f, NS.FONT_SIZE, NS.FONT_FLAGS)
 
 --------------------------------------------------
+-- Pause ("II") helper button
+--------------------------------------------------
+local pauseButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+NS.pauseButton = pauseButton
+pauseButton:SetSize(21, 21)
+pauseButton:SetPoint("LEFT", frame, "RIGHT", 4, 0)
+
+pauseButton:SetText("II")
+pauseButton:GetFontString():SetFontObject("GameFontNormalSmall")
+
+pauseButton:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText("Pause Queues", 1, 0.82, 0)
+    GameTooltip:AddLine("Opens Dungeon Finder so you can queue a follower dungeon.\n"
+        .. "Entering a follower dungeon will pause your PvP queues.", 1, 1, 1, true)
+    GameTooltip:Show()
+end)
+
+pauseButton:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+end)
+
+pauseButton:SetScript("OnClick", function()
+    -- Open the PvE/Group Finder frame.
+    if PVEFrame and PVEFrame:IsShown() then
+        HideUIPanel(PVEFrame)
+    else
+        PVEFrame_ToggleFrame("GroupFinderFrame")
+    end
+end)
+
+--------------------------------------------------
 -- Heartbeat Animation
 --------------------------------------------------
 
@@ -177,6 +209,29 @@ function NS.UpdateDisplay()
     else
         text:SetText(NS.baseText)
     end
+
+--------------------------------------------------
+-- Pause button visibility
+--------------------------------------------------
+do
+    local showButton = false
+
+    for _, q in ipairs(queues) do
+        -- show the button if ANY queue is NOT paused
+        if not q.paused then
+            showButton = true
+            break
+        end
+    end
+
+    if NS.pauseButton then
+        if showButton then
+            NS.pauseButton:Show()
+        else
+            NS.pauseButton:Hide()
+        end
+    end
+end
 
     Resize()
 end

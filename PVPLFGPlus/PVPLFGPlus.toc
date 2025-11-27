@@ -1,0 +1,7 @@
+## Interface: 110205
+## Title: PVPLFG+
+## Author: Greymatter
+## Version: 1.1.0
+## Notes: Enhances PvP LFG by showing leader CR and cleaner group info.
+
+PVPLFGPlus.lua

@@ -1,0 +1,8 @@
+## Interface: 110205
+## Title: PvP Queue Times
+## Notes: Shows average PvP queue and wait durations.
+## Author: Grymtrx
+## Version: 0.4
+## SavedVariables: PVPQTimesDB
+
+PVPQTimes.lua

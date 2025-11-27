@@ -22,6 +22,9 @@ NS.TRACKED_MMR_BRACKETS = {
 NS.PRETTY_NAMES = {
     ["Solo Shuffle: All Arenas"] = "Solo Shuffle: Arena",
     ["Rated Battleground Blitz"] = "Battleground Blitz",
+    ["Random Epic Battleground"] = "Random Epic BG",
+    ["Random Battleground"] = "Random BG",
+    ["Brawl: Southshore vs. Tarren Mill"] = "Brawl: SS vs TM",
 }
 
 NS.BRACKET_BY_QUEUE_NAME = {

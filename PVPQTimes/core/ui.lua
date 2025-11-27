@@ -43,6 +43,17 @@ text:SetPoint("CENTER")
 local f = text:GetFont()
 text:SetFont(f, NS.FONT_SIZE, NS.FONT_FLAGS)
 
+-- Hint text (smaller "Click + Drag me")
+local hintText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+NS.hintText = hintText
+hintText:SetJustifyH("LEFT")
+hintText:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -2)
+
+local hf = hintText:GetFont()
+hintText:SetFont(hf, NS.FONT_SIZE - 2, NS.FONT_FLAGS)  -- smaller than main text
+hintText:SetText(NS.HINT_TEXT)
+hintText:Hide()
+
 --------------------------------------------------
 -- Heartbeat Animation
 --------------------------------------------------
@@ -122,6 +133,7 @@ frame:SetScript("OnLeave", function()
         Resize()
     end
 end)
+
 
 --------------------------------------------------
 -- Build display

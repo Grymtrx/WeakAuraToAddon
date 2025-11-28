@@ -1,21 +1,22 @@
 local ADDON_NAME, NS = ...
 
+--------------------------------------------------
+-- Collect active PvP queues we care about
+--------------------------------------------------
 function NS.CollectQueues()
     local queues = {}
     local max = GetMaxBattlefieldID() or 0
 
     for i = 1, max do
-        -- 5th arg is the paused/suspended flag (you saw it flip true/false in your test)
-        local status, mapName, _, _, isPaused = GetBattlefieldStatus(i)
+        -- 5th return is "suspended" / paused (e.g. while in follower dungeon)
+        local status, mapName, _, _, isSuspended = GetBattlefieldStatus(i)
 
-        if status == "queued" then
-            local paused = isPaused and true or false
-
-            local avgStr
-            local timeStr
+        if status == "queued" and mapName then
+            local paused = isSuspended and true or false
+            local avgStr, timeStr
 
             if paused then
-                -- Blizzard red "Paused"
+                -- Blizzard-red "Paused"
                 avgStr  = "|cffff2020Paused|r"
                 timeStr = "|cffff2020Paused|r"
             else

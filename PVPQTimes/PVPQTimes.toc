@@ -7,7 +7,7 @@
 
 core/init.lua
 core/utils.lua
-core/mmr.lua
 core/queues.lua
+core/mmr.lua
 core/ui.lua
 core/events.lua

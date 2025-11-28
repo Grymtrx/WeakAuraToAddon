@@ -1,31 +1,79 @@
 local ADDON_NAME, NS = ...
 
 --------------------------------------------------
--- QPopCV link popup
+-- QPopCV Copy URL Dialog
 --------------------------------------------------
-StaticPopupDialogs["PVPQTIMES_QPOPCV_LINK"] = {
-    text = "QPopCV link:",
-    button1 = OKAY,
-    hasEditBox = true,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-    OnShow = function(self)
-        local eb = self.editBox
-        eb:SetText(NS.QPOPCV_LINK or "")
-        eb:SetFocus()
-        eb:HighlightText()
-    end,
-    OnAccept = function(self) end,
-    EditBoxOnEscapePressed = function(self)
-        self:GetParent():Hide()
-    end,
-}
+local function CreateCopyUrlDialog()
+    local f = CreateFrame("Frame", "PVPQTimesCopyUrlFrame", UIParent, "BackdropTemplate")
+    f:SetSize(360, 90)
+    f:SetPoint("CENTER")
+    f:SetFrameStrata("DIALOG")
+    f:SetBackdrop({
+        bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile     = true, tileSize = 32, edgeSize = 32,
+        insets   = { left = 11, right = 12, top = 12, bottom = 11 },
+    })
+    f:Hide()
 
-function NS.ShowQPopCVLinkPopup()
-    StaticPopup_Show("PVPQTIMES_QPOPCV_LINK")
+    -- Title
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    title:SetPoint("TOP", 0, -12)
+    title:SetText("QPopCV Link")
+
+    -- EditBox
+    local eb = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+    eb:SetAutoFocus(false)
+    eb:SetSize(300, 20)
+    eb:SetPoint("TOP", title, "BOTTOM", 0, -8)
+    eb:SetText("") -- will be filled when shown
+    eb:SetCursorPosition(0)
+
+    -- OK / Close button
+    local ok = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    ok:SetSize(80, 22)
+    ok:SetPoint("BOTTOM", 0, 10)
+    ok:SetText(OKAY)
+
+    ok:SetScript("OnClick", function()
+        f:Hide()
+    end)
+
+    -- Simple ESC handling
+    f:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:SetPropagateKeyboardInput(false)
+            self:Hide()
+        else
+            self:SetPropagateKeyboardInput(true)
+        end
+    end)
+
+    -- Expose what we need
+    f.editBox = eb
+    return f
 end
+
+local CopyUrlDialog = CreateCopyUrlDialog()
+
+-- Helper to show + prepare dialog
+function NS.ShowCopyUrlDialog()
+    if not CopyUrlDialog then return end
+
+    local eb = CopyUrlDialog.editBox
+    if not eb then return end
+
+    -- 🔥 Hard-coded URL here
+    local url = "https://discord.gg/KpupS6N3Zj"
+
+    CopyUrlDialog:Show()
+    CopyUrlDialog:Raise()
+
+    eb:SetText(url)
+    eb:HighlightText()
+    eb:SetFocus()
+end
+
 
 --------------------------------------------------
 -- Create Frame
@@ -182,7 +230,7 @@ copyButton:GetFontString():SetFontObject("GameFontNormalSmall")
 copyButton:Hide()
 
 copyButton:SetScript("OnClick", function()
-    NS.ShowQPopCVLinkPopup()
+    NS.ShowCopyUrlDialog()
 end)
 
 --------------------------------------------------

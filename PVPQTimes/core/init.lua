@@ -51,6 +51,3 @@ NS.BRACKET_BY_QUEUE_NAME = {
 NS.baseText     = ""      -- text without hover hint
 NS.hasQueues    = false   -- do we currently have active queues?
 NS.missedQueue  = false   -- set when we detect a missed / expired queue
-
---  QPopCV URL (PermaLink Discord Server)
-NS.QPOPCV_LINK  = "https://discord.gg/KpupS6N3Zj"

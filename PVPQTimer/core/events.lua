@@ -37,14 +37,14 @@ end
 frame:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_LOGIN" then
         -- Restore saved position if we have one (account-wide)
-        if NS.db.point then
+        if NS.global and NS.global.point then
             frame:ClearAllPoints()
             frame:SetPoint(
-                NS.db.point,
+                NS.global.point,
                 UIParent,
-                NS.db.relativePoint or NS.db.point,
-                NS.db.x or 0,
-                NS.db.y or 0
+                NS.global.relativePoint or NS.global.point,
+                NS.global.x or 0,
+                NS.global.y or 0
             )
         end
 

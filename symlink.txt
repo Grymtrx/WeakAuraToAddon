@@ -1,0 +1,38 @@
+Symlinks let you develop addons in your Git folder and have them instantly appear in the WoW AddOns directory without copying files.
+
+This allows a single source to edit.
+
+
+
+# Create Symlink (Directory)
+
+1. Run Command Prompt as Administrator:
+2. mklink /D "<INSERT LINKED FILE PATH>" "<INSERT SOURCE FILE PATH>"
+
+[Example]
+mklink /D "C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\PvPQTimer" "C:\Git\WeakAuraToAddon\PvPQTimer"
+
+
+
+# Delete Symlink (Directory)
+(Does NOT delete your real source code.)
+
+1. Run Command Prompt as Administrator:
+2. rmdir "<INSERT LINKED FILE PATH>" "<INSERT SOURCE FILE PATH>"
+
+[Example]
+rmdir "C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\PVPQTimes"
+
+
+
+
+------------------------------
+-- Important Notes --
+------------------------------
+
+> The source folder must exist, or the link becomes “dead.”
+> Renaming/moving the source folder breaks the symlink (delete + recreate).
+> Always run CMD as Administrator when linking into Program Files.
+> /D means directory symlink — required for folders containing files.
+> Symlinks look like normal folders, but they act as pointers.
+

@@ -1,0 +1,14 @@
+## Interface: 110100
+## Title: |cff9FB67APVP|r|cff87EE37Q|rTimer
+## Notes: PvP Queue Timer + Solo Shuffle/Blitz MMR tracker
+## Author: Greymatter/Grymtrx
+## Version: 1.0
+## IconTexture: Interface\AddOns\PVPQTimer\media\icon.tga
+## SavedVariables: PVPQTimerDB
+
+core/init.lua
+core/utils.lua
+core/queues.lua
+core/mmr.lua
+core/ui.lua
+core/events.lua

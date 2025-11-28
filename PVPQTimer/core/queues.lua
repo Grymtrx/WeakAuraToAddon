@@ -28,7 +28,7 @@ function NS.CollectQueues()
                 index    = i,
                 rawName  = mapName,
                 name     = NS.PRETTY_NAMES[mapName] or mapName or ("Queue " .. i),
-                bracket  = NS.BRACKET_BY_QUEUE_NAME[mapName],
+                bracket  = NS.BRACKET_BY_QUEUE_NAME and NS.BRACKET_BY_QUEUE_NAME[mapName],
                 paused   = paused,
                 avgStr   = avgStr,
                 timeStr  = timeStr,

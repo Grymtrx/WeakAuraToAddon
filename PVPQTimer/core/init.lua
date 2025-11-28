@@ -1,10 +1,24 @@
 local ADDON_NAME, NS = ...
 
+function NS.DebugPrint(...)
+    if not NS.DEBUG then return end
+    print("|cffa0ffa0PVPQTimer|r", ...)
+end
 --------------------------------------------------
--- SavedVariables root (account-wide)
+-- SavedVariables root
+--  - PVPQTimerDB: single account-wide DB
+--      * global  -> UI layout, config
+--      * chars   -> per-character MMR etc.
 --------------------------------------------------
-PVPQTimesDB = PVPQTimesDB or {}
-NS.db = PVPQTimesDB
+PVPQTimerDB = PVPQTimerDB or {}
+NS.db = PVPQTimerDB
+
+-- Global/settings section (account-wide)
+NS.db.global = NS.db.global or {}
+NS.global    = NS.db.global
+
+-- Per-character data root
+NS.db.chars = NS.db.chars or {}
 
 --------------------------------------------------
 -- Constants
@@ -17,23 +31,25 @@ NS.COLOR_GREY  = "|cff9d9d9d"
 NS.HINT_TEXT   = "|cff888888Click + Drag me|r"
 
 --------------------------------------------------
--- MMR tracking: which brackets we care about
--- 6 = Rated Solo Shuffle
--- 8 = Rated Battleground Blitz
+-- MMR tracking: brackets we care about
 --------------------------------------------------
 NS.TRACKED_MMR_BRACKETS = {
     [6] = true,   -- Solo Shuffle
-    [8] = true,   -- Blitz
+    [8] = true,   -- Rated Battleground Blitz
 }
+
+-- Logical names for our brackets
+NS.BRACKET_SOLO  = "SOLO_SHUFFLE"
+NS.BRACKET_BLITZ = "BLITZ"
 
 --------------------------------------------------
 -- Pretty names for queue name display
 --------------------------------------------------
 NS.PRETTY_NAMES = {
-    ["Solo Shuffle: All Arenas"] = "Solo Shuffle: Arena",
-    ["Rated Battleground Blitz"] = "Battleground Blitz",
-    ["Random Epic Battleground"] = "Random Epic BG",
-    ["Random Battleground"] = "Random BG",
+    ["Solo Shuffle: All Arenas"]      = "Solo Shuffle: Arena",
+    ["Rated Battleground Blitz"]      = "Battleground Blitz",
+    ["Random Epic Battleground"]      = "Random Epic BG",
+    ["Random Battleground"]           = "Random BG",
     ["Brawl: Southshore vs. Tarren Mill"] = "Brawl: SS vs TM",
 }
 

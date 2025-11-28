@@ -4,7 +4,7 @@ local ADDON_NAME, NS = ...
 -- QPopCV Copy URL Dialog
 --------------------------------------------------
 local function CreateCopyUrlDialog()
-    local f = CreateFrame("Frame", "PVPQTimesCopyUrlFrame", UIParent, "BackdropTemplate")
+    local f = CreateFrame("Frame", "PVPQTimerCopyUrlFrame", UIParent, "BackdropTemplate")
     f:SetSize(360, 90)
     f:SetPoint("CENTER")
     f:SetFrameStrata("DIALOG")
@@ -78,8 +78,20 @@ end
 --------------------------------------------------
 -- Create Frame
 --------------------------------------------------
-local frame = CreateFrame("Frame", "PVPQTimesFrame", UIParent, "BackdropTemplate")
+local frame = CreateFrame("Frame", "PVPQTimerFrame", UIParent, "BackdropTemplate")
 NS.frame = frame
+
+-- Restore account-wide position immediately if we already have one
+if NS.global and NS.global.point then
+    frame:ClearAllPoints()
+    frame:SetPoint(
+        NS.global.point,
+        UIParent,
+        NS.global.relativePoint or NS.global.point,
+        NS.global.x or 0,
+        NS.global.y or 0
+    )
+end
 
 frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
 frame:Hide()
@@ -108,7 +120,11 @@ frame:SetScript("OnDragStart", frame.StartMoving)
 frame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     local p, _, rp, x, y = self:GetPoint()
-    NS.db.point, NS.db.relativePoint, NS.db.x, NS.db.y = p, rp, x, y
+    -- Save to account-wide settings
+    NS.global.point         = p
+    NS.global.relativePoint = rp
+    NS.global.x             = x
+    NS.global.y             = y
 end)
 
 --------------------------------------------------

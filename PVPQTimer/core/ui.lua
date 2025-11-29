@@ -270,7 +270,6 @@ end)
 -- UpdateDisplay
 --------------------------------------------------
 function NS.UpdateDisplay()
-    print("PVPQTimer: UpdateDisplay() running")
     local queues = NS.CollectQueues()
 
     -- No active queues

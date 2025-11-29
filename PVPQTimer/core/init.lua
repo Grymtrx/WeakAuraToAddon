@@ -1,10 +1,4 @@
 local ADDON_NAME, NS = ...
-print("PVPQTimer: init.lua LOADED for", ADDON_NAME)
-
-function NS.DebugPrint(...)
-    if not NS.DEBUG then return end
-    print("|cffa0ffa0PVPQTimer|r", ...)
-end
 --------------------------------------------------
 -- SavedVariables root
 --  - PVPQTimerDB: single account-wide DB
@@ -18,7 +12,7 @@ NS.db = PVPQTimerDB
 NS.db.global = NS.db.global or {}
 NS.global    = NS.db.global
 
--- Per-character data root
+-- Per-character data root (MMR etc.)
 NS.db.chars = NS.db.chars or {}
 
 --------------------------------------------------

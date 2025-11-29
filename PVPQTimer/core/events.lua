@@ -58,11 +58,11 @@ frame:SetScript("OnEvent", function(_, event)
         frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
     end
 
-    -- optional debug
-    print("PVPQTimer:", UnitName("player"), "loaded position:",
-        g and g.x or 0,
-        g and g.y or 0
-    )
+    --  NEW: re-apply saved font size on login
+    if NS.ApplyFontSize then
+        local fontSize = (g and g.fontSize) or NS.FONT_SIZE or 12
+        NS.ApplyFontSize(fontSize)
+    end
 
     NS.UpdateDisplay()
 

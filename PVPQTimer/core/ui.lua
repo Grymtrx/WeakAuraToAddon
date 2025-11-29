@@ -161,7 +161,40 @@ text:SetPoint("CENTER")
 
 do
     local font, size, flags = text:GetFont()
-    text:SetFont(font, NS.FONT_SIZE or size, NS.FONT_FLAGS or flags)
+    local targetSize = (NS.global and NS.global.fontSize) or NS.FONT_SIZE or size
+    text:SetFont(font, targetSize, NS.FONT_FLAGS or flags)
+end
+
+
+--------------------------------------------------
+-- Runtime font-size application
+--------------------------------------------------
+function NS.ApplyFontSize(newSize)
+    if type(newSize) ~= "number" or newSize <= 0 then
+        return
+    end
+
+    -- Ensure SavedVariables and global settings exist
+    PVPQTimerDB = PVPQTimerDB or {}
+    PVPQTimerDB.global = PVPQTimerDB.global or {}
+
+    NS.db     = PVPQTimerDB
+    NS.global = PVPQTimerDB.global
+
+    -- Persist and mirror to constants
+    NS.global.fontSize = newSize
+    NS.FONT_SIZE       = newSize
+
+    -- Apply to live fontstring
+    if NS.text then
+        local font, _, flags = NS.text:GetFont()
+        NS.text:SetFont(font, newSize, NS.FONT_FLAGS or flags)
+    end
+
+    -- Resize frame so background fits new text size
+    if NS.Resize then
+        NS.Resize()
+    end
 end
 
 --------------------------------------------------

@@ -13,3 +13,5 @@ core/queues.lua
 core/mmr.lua
 core/ui.lua
 core/events.lua
+
+options/options.lua

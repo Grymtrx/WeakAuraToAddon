@@ -18,7 +18,8 @@ NS.db.chars = NS.db.chars or {}
 --------------------------------------------------
 -- Constants
 --------------------------------------------------
-NS.FONT_SIZE   = 12
+NS.global.fontSize = NS.global.fontSize or 12
+NS.FONT_SIZE   = NS.global.fontSize -- options.lua
 NS.FONT_FLAGS  = "OUTLINE"
 NS.PADDING_X   = 20
 NS.PADDING_Y   = 12

@@ -119,24 +119,37 @@ frame:RegisterForDrag("LeftButton")
 frame:SetScript("OnDragStart", frame.StartMoving)
 frame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
-    local p, _, rp, x, y = self:GetPoint()
 
-    -- Ensure the SavedVariables root and global table exist
+    -- Get center of frame and UIParent
+    local fX, fY = self:GetCenter()
+    local uX, uY = UIParent:GetCenter()
+
+    if not (fX and fY and uX and uY) then
+        return
+    end
+
+    -- Offset from center
+    local x = fX - uX
+    local y = fY - uY
+
+    -- Ensure SavedVariables root exists
     PVPQTimerDB = PVPQTimerDB or {}
     PVPQTimerDB.global = PVPQTimerDB.global or {}
 
-    -- Write directly into SavedVariables
-    PVPQTimerDB.global.point         = p
-    PVPQTimerDB.global.relativePoint = rp
+    -- Always save as CENTER anchor
+    PVPQTimerDB.global.point         = "CENTER"
+    PVPQTimerDB.global.relativePoint = "CENTER"
     PVPQTimerDB.global.x             = x
     PVPQTimerDB.global.y             = y
 
-    -- Keep NS in sync for this session
+    -- Keep NS in sync
     NS.db     = PVPQTimerDB
     NS.global = PVPQTimerDB.global
 
-    print("PVPQTimer: OnDragStop saving position to SV:", p, x, y)
+    -- Debug (optional)
+    print("PVPQTimer: OnDragStop saving CENTER offset:", x, y)
 end)
+
 
 --------------------------------------------------
 -- Text

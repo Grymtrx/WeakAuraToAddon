@@ -37,37 +37,34 @@ end
 --------------------------------------------------
 frame:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_LOGIN" then
-        -- Re-sync NS with SavedVariables
-        PVPQTimerDB = PVPQTimerDB or {}
-        PVPQTimerDB.global = PVPQTimerDB.global or {}
+    PVPQTimerDB = PVPQTimerDB or {}
+    PVPQTimerDB.global = PVPQTimerDB.global or {}
 
-        NS.db     = PVPQTimerDB
-        NS.global = PVPQTimerDB.global
+    NS.db     = PVPQTimerDB
+    NS.global = PVPQTimerDB.global
 
-        -- Restore saved position if we have one (account-wide)
-        local g = PVPQTimerDB.global
-        if g and g.point then
-            frame:ClearAllPoints()
-            frame:SetPoint(
-                g.point,
-                UIParent,
-                g.relativePoint or g.point,
-                g.x or 0,
-                g.y or 0
-            )
-        else
-            -- First-run fallback: fixed default so layout cache is predictable
-            frame:ClearAllPoints()
-            frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
-        end
-
-        print("PVPQTimer:", UnitName("player"), "loaded position:",
-            g and g.point or "nil",
-            g and g.x or 0,
-            g and g.y or 0
+    local g = PVPQTimerDB.global
+    if g and g.x and g.y then
+        frame:ClearAllPoints()
+        frame:SetPoint(
+            "CENTER",
+            UIParent,
+            "CENTER",
+            g.x,
+            g.y
         )
+    else
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
+    end
 
-        NS.UpdateDisplay()
+    -- optional debug
+    print("PVPQTimer:", UnitName("player"), "loaded position:",
+        g and g.x or 0,
+        g and g.y or 0
+    )
+
+    NS.UpdateDisplay()
 
 
     elseif event == "UPDATE_BATTLEFIELD_STATUS" then
@@ -82,17 +79,22 @@ frame:SetScript("OnEvent", function(_, event)
         end)
 
     elseif event == "PLAYER_LOGOUT" then
-        -- Final save of position to SV
         PVPQTimerDB = PVPQTimerDB or {}
         PVPQTimerDB.global = PVPQTimerDB.global or {}
 
-        local p, _, rp, x, y = frame:GetPoint()
-        if p then
-            PVPQTimerDB.global.point         = p
-            PVPQTimerDB.global.relativePoint = rp
+        local fX, fY = frame:GetCenter()
+        local uX, uY = UIParent:GetCenter()
+        if fX and fY and uX and uY then
+            local x = fX - uX
+            local y = fY - uY
+
+            PVPQTimerDB.global.point         = "CENTER"
+            PVPQTimerDB.global.relativePoint = "CENTER"
             PVPQTimerDB.global.x             = x
             PVPQTimerDB.global.y             = y
-            print("PVPQTimer: PLAYER_LOGOUT saving position:", p, x, y)
+
+            -- optional debug
+            print("PVPQTimer: PLAYER_LOGOUT saving CENTER offset:", x, y)
         end
     end
 end)

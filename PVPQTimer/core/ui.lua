@@ -120,12 +120,22 @@ frame:SetScript("OnDragStart", frame.StartMoving)
 frame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     local p, _, rp, x, y = self:GetPoint()
-    print("PVPQTimer: OnDragStop saving position:", p, x, y)
-    -- Save to account-wide settings
-    NS.global.point         = p
-    NS.global.relativePoint = rp
-    NS.global.x             = x
-    NS.global.y             = y
+
+    -- Ensure the SavedVariables root and global table exist
+    PVPQTimerDB = PVPQTimerDB or {}
+    PVPQTimerDB.global = PVPQTimerDB.global or {}
+
+    -- Write directly into SavedVariables
+    PVPQTimerDB.global.point         = p
+    PVPQTimerDB.global.relativePoint = rp
+    PVPQTimerDB.global.x             = x
+    PVPQTimerDB.global.y             = y
+
+    -- Keep NS in sync for this session
+    NS.db     = PVPQTimerDB
+    NS.global = PVPQTimerDB.global
+
+    print("PVPQTimer: OnDragStop saving position to SV:", p, x, y)
 end)
 
 --------------------------------------------------

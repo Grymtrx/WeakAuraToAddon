@@ -1,4 +1,5 @@
 local ADDON_NAME, NS = ...
+print("PVPQTimer: init.lua LOADED for", ADDON_NAME)
 
 function NS.DebugPrint(...)
     if not NS.DEBUG then return end

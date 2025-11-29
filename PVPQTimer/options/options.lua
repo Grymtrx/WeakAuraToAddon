@@ -5,7 +5,7 @@ local ADDON_NAME, NS = ...
 local options = {
     enableBackground = true,
     enableMMR     = true,
-    fontSize      = 12,
+    fontSize      = 13,
     grow          = "CENTER",
     anchor        = "CENTER",
 }
@@ -115,6 +115,17 @@ local function BuildUI()
     if built then return end
     built = true
 
+    -- Pull current settings from SavedVariables, if available
+    if NS and NS.global then
+        if NS.global.enableBackground ~= nil then
+            options.enableBackground = NS.global.enableBackground
+        end
+        if NS.global.fontSize then
+            options.fontSize = NS.global.fontSize
+        end
+        -- (grow/anchor/MMR can be wired later)
+    end
+
     --------------------------------------------------
     -- Title
     --------------------------------------------------
@@ -132,8 +143,12 @@ local function BuildUI()
     cbBG:SetChecked(options.enableBackground)
 
     cbBG:SetScript("OnClick", function(self)
-        options.enableBackground = self:GetChecked() and true or false
-        -- later: notify addon / save
+        local checked = self:GetChecked() and true or false
+        options.enableBackground = checked
+
+        if NS and NS.ApplyBackgroundEnabled then
+            NS.ApplyBackgroundEnabled(checked)
+        end
     end)
 
     --------------------------------------------------

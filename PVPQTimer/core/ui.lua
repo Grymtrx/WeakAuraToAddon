@@ -96,18 +96,50 @@ end
 frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
 frame:Hide()
 
-frame:SetBackdrop({
+-- Default backdrop definition so we can reuse it when toggling
+local DEFAULT_BACKDROP = {
     bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
     tile     = true, tileSize = 16, edgeSize = 16,
     insets   = { left = 4, right = 4, top = 4, bottom = 4 },
-})
+}
+
+-- Start with backdrop ON by default
+frame:SetBackdrop(DEFAULT_BACKDROP)
 frame:SetBackdropColor(0, 0, 0, 0.75)
 frame:SetBackdropBorderColor(0.2, 0.2, 0.2, 1)
 
 frame:SetClampedToScreen(true)
 frame:SetFrameStrata("MEDIUM")
 frame:SetFrameLevel(10)
+
+--------------------------------------------------
+-- Runtime background toggle
+--------------------------------------------------
+function NS.ApplyBackgroundEnabled(enabled)
+    -- treat nil as "true by default"
+    if enabled == nil then
+        enabled = true
+    end
+
+    -- Make sure SavedVariables exist; keep NS in sync
+    PVPQTimerDB = PVPQTimerDB or {}
+    PVPQTimerDB.global = PVPQTimerDB.global or {}
+
+    NS.db     = PVPQTimerDB
+    NS.global = PVPQTimerDB.global
+
+    NS.global.enableBackground = enabled
+
+    if enabled then
+        frame:SetBackdrop(DEFAULT_BACKDROP)
+        frame:SetBackdropColor(0, 0, 0, 0.75)
+        frame:SetBackdropBorderColor(0.2, 0.2, 0.2, 1)
+    else
+        -- strip background & border
+        frame:SetBackdrop(nil)
+    end
+end
 
 --------------------------------------------------
 -- Dragging / position save (account-wide)

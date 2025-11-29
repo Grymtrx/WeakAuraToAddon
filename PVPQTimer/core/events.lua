@@ -46,22 +46,27 @@ frame:SetScript("OnEvent", function(_, event)
     local g = PVPQTimerDB.global
     if g and g.x and g.y then
         frame:ClearAllPoints()
-        frame:SetPoint(
-            "CENTER",
-            UIParent,
-            "CENTER",
-            g.x,
-            g.y
-        )
+        frame:SetPoint("CENTER", UIParent, "CENTER", g.x, g.y)
     else
         frame:ClearAllPoints()
         frame:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
     end
 
-    --  NEW: re-apply saved font size on login
+    --  re-apply saved font size on login
     if NS.ApplyFontSize then
-        local fontSize = (g and g.fontSize) or NS.FONT_SIZE or 12
+        local fontSize = (g and g.fontSize) or NS.FONT_SIZE or 13
         NS.ApplyFontSize(fontSize)
+    end
+
+    -- Default to true if never set before
+    if g.enableBackground == nil then
+        g.enableBackground = true
+    end
+
+     -- Re-apply saved background state, defaulting to true if never set
+    if NS.ApplyBackgroundEnabled then
+        local enabled = g and g.enableBackground
+        NS.ApplyBackgroundEnabled(enabled)   -- nil => treated as true inside
     end
 
     NS.UpdateDisplay()

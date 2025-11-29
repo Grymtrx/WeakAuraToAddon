@@ -123,7 +123,9 @@ local function BuildUI()
         if NS.global.fontSize then
             options.fontSize = NS.global.fontSize
         end
-        -- (grow/anchor/MMR can be wired later)
+        if NS.global.enableMMR ~= nil then
+            options.enableMMR = NS.global.enableMMR
+        end
     end
 
     --------------------------------------------------
@@ -163,9 +165,27 @@ local function BuildUI()
     cbMMR:SetChecked(options.enableMMR)
 
     cbMMR:SetScript("OnClick", function(self)
-        options.enableMMR = self:GetChecked() and true or false
-        -- later: notify addon / save
+        local checked = self:GetChecked() and true or false
+        options.enableMMR = checked
+
+        -- Ensure SavedVariables exist and keep NS in sync
+        PVPQTimerDB = PVPQTimerDB or {}
+        PVPQTimerDB.global = PVPQTimerDB.global or {}
+
+        NS.db     = PVPQTimerDB
+        NS.global = PVPQTimerDB.global
+
+        -- Persist the setting
+        NS.global.enableMMR = checked
+
+        -- Optional: immediately refresh the display so the MMR line
+        -- appears/disappears without needing a reload
+        if NS.UpdateDisplay then
+            NS.UpdateDisplay()
+        end
     end)
+
+
 
     --------------------------------------------------
     -- Slider: Font Size (8–20)

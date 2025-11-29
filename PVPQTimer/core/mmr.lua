@@ -90,6 +90,11 @@ end
 ------------------------------------------------
 
 function NS.GetLastMMRForBracket(bracket)
+    -- If MMR display is disabled, bail out immediately
+    if NS and NS.global and NS.global.enableMMR == false then
+        return nil
+    end
+    
     if not bracket or bracket <= 0 then
         return nil
     end

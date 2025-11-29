@@ -4,6 +4,7 @@ local ADDON_NAME, NS = ...
 -- Helpers
 ------------------------------------------------
 
+-- Stable per-character key: "Name-Realm"
 local function GetCharKey()
     local name, realm = UnitFullName("player")
     if not name then
@@ -24,9 +25,8 @@ local function GetCurrentSpecName()
     return specName
 end
 
--- Ensure the root SavedVariables table and char subtree exist.
--- We DO NOT go through NS.db here; we go straight to the global
--- that WoW persists: PVPQTimerDB.
+-- Ensure the SavedVariables tree exists and return the char+mmr tables.
+-- We work directly on PVPQTimerDB so we never get out of sync with SavedVariables.
 local function EnsureCharTables()
     PVPQTimerDB = PVPQTimerDB or {}
     PVPQTimerDB.chars = PVPQTimerDB.chars or {}
@@ -44,25 +44,24 @@ local function EnsureCharTables()
 end
 
 ------------------------------------------------
--- WRITE: store last MMR per bracket & spec
+-- WRITE: store last MMR for this char + bracket + spec
 ------------------------------------------------
 
 local function StoreLatestMMR(bracket, specName, pre, post, change)
-    if not bracket or bracket <= 0 then
-        return
-    end
-    if not pre or not post or pre <= 0 or post <= 0 then
-        return
-    end
-
-    -- Only track the brackets we care about (if defined)
+    -- Only track brackets we explicitly care about (6 = Shuffle, 8 = Blitz)
     if NS.TRACKED_MMR_BRACKETS and not NS.TRACKED_MMR_BRACKETS[bracket] then
         return
     end
 
-    local db, charDB, charKey = EnsureCharTables()
+    if not specName or specName == "" then
+        return
+    end
 
-    specName = specName or GetCurrentSpecName() or "Unknown"
+    if not pre or not post or pre <= 0 or post <= 0 then
+        return
+    end
+
+    local db, charDB = EnsureCharTables()
 
     local mmrByBracket = charDB.mmr
     local bracketTable = mmrByBracket[bracket]
@@ -71,71 +70,65 @@ local function StoreLatestMMR(bracket, specName, pre, post, change)
         mmrByBracket[bracket] = bracketTable
     end
 
-    local entry = {
+    -- Per spec name (e.g. "Restoration", "Enhancement", "Discipline")
+    bracketTable[specName] = {
         pre    = pre,
         post   = post,
         change = change or (post - pre),
         spec   = specName,
-        at     = time(),  -- timestamp for future debugging if needed
+        at     = time(),  -- timestamp if you ever want history/debug
     }
-
-    bracketTable[specName] = entry
-    bracketTable._last     = entry  -- cache "last seen" entry for this bracket
 end
 
 ------------------------------------------------
--- READ: return last MMR for this bracket on this char
---  1) Try current spec
---  2) Fallback to `_last`
---  3) Fallback to any valid entry
+-- READ: last MMR for *this* char + bracket + current spec
+--
+-- IMPORTANT:
+--  • No fallback to other specs.
+--  • No “_last” / “any entry” fallback.
+--  • If you haven’t played this spec in this bracket, you get nil.
 ------------------------------------------------
 
 function NS.GetLastMMRForBracket(bracket)
     if not bracket or bracket <= 0 then
-        return
+        return nil
+    end
+
+    -- Respect tracked brackets if defined
+    if NS.TRACKED_MMR_BRACKETS and not NS.TRACKED_MMR_BRACKETS[bracket] then
+        return nil
     end
 
     local db = PVPQTimerDB
     if not db or not db.chars then
-        return
+        return nil
     end
 
     local charKey = GetCharKey()
     local charDB  = db.chars[charKey]
     if not charDB or not charDB.mmr then
-        return
+        return nil
+    end
+
+    local specName = GetCurrentSpecName()
+    if not specName or specName == "" then
+        return nil
     end
 
     local bracketTable = charDB.mmr[bracket]
     if not bracketTable then
-        return
+        return nil
     end
 
-    -- 1) Try current spec key
-    local specName = GetCurrentSpecName()
-    local entry
-
-    if specName and specName ~= "" then
-        entry = bracketTable[specName]
-    end
-
-    -- 2) Fallback: `_last` if spec lookup failed
+    local entry = bracketTable[specName]
     if not entry then
-        entry = bracketTable._last
+        -- No MMR recorded yet for this spec in this bracket
+        return nil
     end
 
-    -- 3) Fallback: first valid entry in this bracket
-    if not entry then
-        for key, value in pairs(bracketTable) do
-            if type(value) == "table" and value.pre and value.post then
-                entry = value
-                break
-            end
-        end
-    end
-
-    if not entry then
-        return
+    -- Extra sanity: if stored spec doesn't match, bail
+    if entry.spec and entry.spec ~= specName then
+        return nil
     end
 
     local pre    = entry.pre or 0
@@ -143,7 +136,7 @@ function NS.GetLastMMRForBracket(bracket)
     local change = entry.change or (post - pre)
 
     if pre <= 0 or post <= 0 then
-        return
+        return nil
     end
 
     local label
@@ -173,7 +166,6 @@ function NS.TrackLatestMMR()
         return
     end
 
-    -- Honor NS.TRACKED_MMR_BRACKETS here as well
     if NS.TRACKED_MMR_BRACKETS and not NS.TRACKED_MMR_BRACKETS[bracket] then
         return
     end
@@ -194,6 +186,7 @@ function NS.TrackLatestMMR()
         return
     end
 
+    -- Prefer Blizzard's talentSpec string; fallback to current spec
     local specName = info.talentSpec
     if not specName or specName == "" then
         specName = GetCurrentSpecName()

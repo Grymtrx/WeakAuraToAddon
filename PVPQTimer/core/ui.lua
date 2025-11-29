@@ -340,24 +340,31 @@ function NS.UpdateDisplay()
 
         -- MMR for this bracket, if we have a sample
         if NS.GetLastMMRForBracket and q.bracket then
-            local label, pre, post, change = NS.GetLastMMRForBracket(q.bracket)
-            if label and pre and post and change then
-                local color = "|cffbbbbbb"
+            local _, pre, post, change = NS.GetLastMMRForBracket(q.bracket)
+            if pre and post and change then
+
+                local color = "|cffbbbbbb" -- neutral
                 if change > 0 then
-                    color = "|cff00ff00"
+                    color = "|cff00ff00"   -- green
                 elseif change < 0 then
-                    color = "|cffff0000"
+                    color = "|cffff0000"   -- red
                 end
 
+                local grey = NS.COLOR_GREY or "|cff9d9d9d"
+
+                -- Format:
+                -- MMR: 2200 > 2300 (+80)
+                -- Grey: [MMR: 2200 > 2300]
+                -- Colored: [(+80)]
                 local mmrLine = string.format(
-                    "%s%s %d › %d %s(%+d)|r",
-                    NS.COLOR_GREY or "|cff9d9d9d",
-                    label,
+                    "%sMMR: %d > %d|r %s(%+d)|r",
+                    grey,
                     pre,
                     post,
                     color,
                     change
                 )
+
                 table.insert(lines, mmrLine)
             end
         end

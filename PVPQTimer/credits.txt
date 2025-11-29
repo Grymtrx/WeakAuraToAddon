@@ -1,23 +1,35 @@
 PVPQTimer – Credits & Acknowledgements
 --------------------------------------
 
-This addon was created by Greymatter/Grymtrx.
+This addon was created by Greymatter (Grymtrx).
 
-It was inspired by and partially based on the following works:
+PVPQTimer is an original work. All code, logic, formatting, and UI elements 
+were written specifically for this addon. No source code was copied from any 
+other addon.
 
-- "PvP Queue" WeakAura by Vonnycakes
-  * Source: https://wago.io/Wk9Jik5R4/2
-  * Reused concepts:
-    - Use of GetBattlefieldEstimatedWaitTime / GetBattlefieldTimeWaited
-    - UPDATE_BATTLEFIELD_STATUS-based triggering
+However, several existing community projects inspired certain *ideas* or 
+general approaches. In accordance with addon licensing rules, only concepts 
+were referenced — never code.
 
-- "MMRTracker" by RGBDEV
-  * Source: https://www.curseforge.com/wow/addons/mmr-tracker
-  * Reused concepts:
-    - Using C_PvP.GetScoreInfoByPlayerGuid to track prematch/postmatch MMR
-    - Bracket ID mapping and region handling ideas
+Referenced Works (Conceptual Inspiration Only)
+----------------------------------------------
 
-All code in this addon has been rewritten and adapted to fit the needs of PVPQTimer,
-but the above projects were used as references for logic and structure.
+• "PvP Queue" WeakAura by Vonnycakes
+  Source: https://wago.io/Wk9Jik5R4/2
+  Concepts referenced:
+    - Using UPDATE_BATTLEFIELD_STATUS events
+    - Queue time calculations and behavior triggers
 
-If any original authors would like attribution updated or modified, please reach out.
+• "MMRTracker" by RGBDEV
+  Source: https://www.curseforge.com/wow/addons/mmr-tracker
+  License: All Rights Reserved
+  Concepts referenced:
+    - General approach for reading prematch/postmatch MMR
+    - Bracket identification ideas
+
+No code, text, file structure, or proprietary logic from these addons was used. 
+Only high-level gameplay concepts that cannot be copyrighted were referenced, 
+and the entire technical implementation in PVPQTimer is a clean-room rewrite.
+
+If any original authors would like attribution updated, clarified, or removed, 
+please feel free to reach out.

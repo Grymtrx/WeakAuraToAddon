@@ -5,6 +5,7 @@
 ## Version: 1.0
 ## IconTexture: Interface\AddOns\PVPQTimer\media\icon.tga
 ## SavedVariables: PVPQTimerDB
+## X-License: MIT
 
 core/init.lua
 core/utils.lua

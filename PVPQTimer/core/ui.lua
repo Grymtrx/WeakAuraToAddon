@@ -120,6 +120,7 @@ frame:SetScript("OnDragStart", frame.StartMoving)
 frame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     local p, _, rp, x, y = self:GetPoint()
+    print("PVPQTimer: OnDragStop saving position:", p, x, y)
     -- Save to account-wide settings
     NS.global.point         = p
     NS.global.relativePoint = rp
@@ -352,12 +353,8 @@ function NS.UpdateDisplay()
 
                 local grey = NS.COLOR_GREY or "|cff9d9d9d"
 
-                -- Format:
-                -- MMR: 2200 > 2300 (+80)
-                -- Grey: [MMR: 2200 > 2300]
-                -- Colored: [(+80)]
                 local mmrLine = string.format(
-                    "%sMMR: %d > %d|r %s(%+d)|r",
+                    "%sMMR: %d → %d|r %s(%+d)|r",
                     grey,
                     pre,
                     post,

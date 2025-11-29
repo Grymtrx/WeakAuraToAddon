@@ -6,6 +6,7 @@ local frame = NS.frame
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
 frame:RegisterEvent("PVP_MATCH_COMPLETE")
+frame:RegisterEvent("PLAYER_LOGOUT")
 
 --------------------------------------------------
 -- Missed-queue detection
@@ -55,13 +56,23 @@ frame:SetScript("OnEvent", function(_, event)
         NS.UpdateDisplay()
 
     elseif event == "PVP_MATCH_COMPLETE" then
-        -- Let the scoreboard API settle before sampling MMR
         C_Timer.After(1, function()
             if NS.TrackLatestMMR then
                 NS.TrackLatestMMR()
             end
-            NS.UpdateDisplay()
         end)
+
+    elseif event == "PLAYER_LOGOUT" then
+        -- Final save of frame position (account-wide) on reload / quit
+        if NS.frame and NS.global then
+            local p, _, rp, x, y = NS.frame:GetPoint()
+            if p then
+                NS.global.point         = p
+                NS.global.relativePoint = rp
+                NS.global.x             = x
+                NS.global.y             = y
+            end
+        end
     end
 end)
 
@@ -78,3 +89,11 @@ frame:SetScript("OnUpdate", function(_, dt)
         NS.UpdateDisplay()
     end
 end)
+
+
+-- Debug Account-wide saved position
+print("PVPQTimer:", UnitName("player"), "loaded position:",
+    NS.global.point or "nil",
+    NS.global.x or 0,
+    NS.global.y or 0
+)

@@ -1,31 +1,16 @@
--- options.lua
 local ADDON_NAME, NS = ...
 
-
 local options = {
-    enableBackground = true,
-    enableMMR     = true,
-    fontSize      = 13,
-    grow          = "CENTER",
-    anchor        = "CENTER",
+    enableBackground  = true,
+    enableMMR         = true,
+    enablePauseButton = true,
+    pauseLocation     = "RIGHT",  -- or "LEFT"
+    fontSize          = 12,
 }
 
-local growList = {
-    { value = "UP",   text = "UP"   },
-    { value = "CENTER", text = "CENTER" },
-    { value = "DOWN", text = "DOWN" },
-}
-
-local anchorList = {
-    { value = "TOPLEFT",     text = "TOPLEFT"     },
-    { value = "TOP",         text = "TOP"  },
-    { value = "TOPRIGHT",    text = "TOPRIGHT"   },
-    { value = "LEFT",        text = "LEFT" },
-    { value = "CENTER",      text = "CENTER"      },
-    { value = "RIGHT",       text = "RIGHT"     },
-    { value = "BOTTOMLEFT",  text = "BOTTOMLEFT" },
-    { value = "BOTTOM",      text = "BOTTOM"},
-    { value = "BOTTOMRIGHT", text = "BOTTOMRIGHT"},
+local pauseLocationList = {
+    { value = "RIGHT", text = "RIGHT" },
+    { value = "LEFT",  text = "LEFT"  },
 }
 
 --------------------------------------------------
@@ -52,12 +37,22 @@ local function CreateCheckbox(parent, label, tooltip, yOffset)
     return cb
 end
 
+local function CreateDropdown(parent, labelText, width, yOffset)
+    local label = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    label:SetPoint("TOPLEFT", 16, yOffset)
+    label:SetText(labelText)
+
+    local dropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("TOPLEFT", label, "BOTTOMLEFT", -15, -2)
+    dropdown:SetWidth(width or 150)
+
+    return dropdown
+end
+
 local function CreateSlider(parent, label, minVal, maxVal, step, yOffset)
-    -- Give the slider a name only if the parent has one; otherwise leave it nil
     local parentName = parent:GetName()
     local sliderName
     if parentName then
-        -- strip spaces from label to avoid weird global names
         sliderName = parentName .. label:gsub("%s+", "") .. "Slider"
     end
 
@@ -67,7 +62,6 @@ local function CreateSlider(parent, label, minVal, maxVal, step, yOffset)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
 
-    -- Use the regions directly, no _G lookup needed
     if slider.Text then
         slider.Text:SetText(label)
     end
@@ -81,19 +75,6 @@ local function CreateSlider(parent, label, minVal, maxVal, step, yOffset)
     return slider
 end
 
-
-local function CreateDropdown(parent, labelText, width, yOffset)
-    local label = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    label:SetPoint("TOPLEFT", 16, yOffset)
-    label:SetText(labelText)
-
-    local dropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
-    dropdown:SetPoint("TOPLEFT", label, "BOTTOMLEFT", -15, -2)
-    dropdown:SetWidth(width or 150)
-
-    return dropdown
-end
-
 --------------------------------------------------
 -- Category Frame
 --------------------------------------------------
@@ -101,7 +82,6 @@ end
 local panel = CreateFrame("Frame", "PVPQTimerOptionsPanel", UIParent)
 panel.name = "PVPQTimer"
 
--- For DF/TWW settings panel: register this frame as an AddOn category
 local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
 Settings.RegisterAddOnCategory(category)
 
@@ -120,11 +100,17 @@ local function BuildUI()
         if NS.global.enableBackground ~= nil then
             options.enableBackground = NS.global.enableBackground
         end
+        if NS.global.enableMMR ~= nil then
+            options.enableMMR = NS.global.enableMMR
+        end
         if NS.global.fontSize then
             options.fontSize = NS.global.fontSize
         end
-        if NS.global.enableMMR ~= nil then
-            options.enableMMR = NS.global.enableMMR
+        if NS.global.enablePauseButton ~= nil then
+            options.enablePauseButton = NS.global.enablePauseButton
+        end
+        if NS.global.pauseLocation then
+            options.pauseLocation = NS.global.pauseLocation
         end
     end
 
@@ -134,12 +120,12 @@ local function BuildUI()
     CreateTitle(panel, "PVPQTimer Settings", -16)
 
     --------------------------------------------------
-    -- Checkbox: Enable Background & Border
+    -- Checkbox: Show Background & Border
     --------------------------------------------------
     local cbBG = CreateCheckbox(
         panel,
-        "Enable Background & Border",
-        "Toggle a backdrop + border for the timer (wiring later).",
+        "Show Background & Border",
+        "Toggle a backdrop + border for the timer.",
         -56
     )
     cbBG:SetChecked(options.enableBackground)
@@ -154,12 +140,12 @@ local function BuildUI()
     end)
 
     --------------------------------------------------
-    -- Checkbox: Enable MMR Tracking
+    -- Checkbox: Show MMR
     --------------------------------------------------
     local cbMMR = CreateCheckbox(
         panel,
-        "Enable MMR Tracking",
-        "When enabled, PVPQTimer will include MMR-related info in its display (wiring later).",
+        "Show MMR",
+        "When enabled, PVPQTimer will include MMR-related info in its display.",
         -86
     )
     cbMMR:SetChecked(options.enableMMR)
@@ -178,21 +164,98 @@ local function BuildUI()
         -- Persist the setting
         NS.global.enableMMR = checked
 
-        -- Optional: immediately refresh the display so the MMR line
-        -- appears/disappears without needing a reload
+        -- Immediately refresh the display
         if NS.UpdateDisplay then
             NS.UpdateDisplay()
         end
     end)
 
+    --------------------------------------------------
+    -- Checkbox: Show Pause Button
+    --------------------------------------------------
+    local cbPause = CreateCheckbox(
+        panel,
+        "Show Pause Button",
+        "Show a pause button next to the timer frame.",
+        -116
+    )
+    cbPause:SetChecked(options.enablePauseButton)
 
+    cbPause:SetScript("OnClick", function(self)
+        local checked = self:GetChecked() and true or false
+        options.enablePauseButton = checked
+
+        -- Ensure SavedVariables exist and keep NS in sync
+        PVPQTimerDB = PVPQTimerDB or {}
+        PVPQTimerDB.global = PVPQTimerDB.global or {}
+
+        NS.db     = PVPQTimerDB
+        NS.global = PVPQTimerDB.global
+
+        NS.global.enablePauseButton = checked
+
+        if NS.ApplyPauseButtonConfig then
+            NS.ApplyPauseButtonConfig()
+        end
+    end)
+
+    --------------------------------------------------
+    -- Dropdown: Pause Location
+    --------------------------------------------------
+    local pauseLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    pauseLabel:SetPoint("TOPLEFT", cbPause, "BOTTOMLEFT", 0, -12)
+    pauseLabel:SetText("Pause Location")
+
+    local pauseDropdown = CreateFrame(
+        "Frame",
+        "PVPQTimerPauseLocationDropdown",
+        panel,
+        "UIDropDownMenuTemplate"
+    )
+    pauseDropdown:SetPoint("TOPLEFT", pauseLabel, "BOTTOMLEFT", -16, -4)
+
+    local function PauseLocationDropdown_Initialize(self, level)
+        local selected = options.pauseLocation or "RIGHT"
+
+        for _, item in ipairs(pauseLocationList) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text  = item.text
+            info.value = item.value
+            info.func  = function()
+                options.pauseLocation = item.value
+
+                PVPQTimerDB = PVPQTimerDB or {}
+                PVPQTimerDB.global = PVPQTimerDB.global or {}
+                NS.db     = PVPQTimerDB
+                NS.global = PVPQTimerDB.global
+
+                NS.global.pauseLocation = item.value
+
+                UIDropDownMenu_SetSelectedValue(pauseDropdown, item.value)
+                UIDropDownMenu_SetText(pauseDropdown, item.text)
+
+                if NS.ApplyPauseButtonConfig then
+                    NS.ApplyPauseButtonConfig()
+                end
+            end
+            info.checked = (item.value == selected)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+
+    UIDropDownMenu_Initialize(pauseDropdown, PauseLocationDropdown_Initialize)
+    UIDropDownMenu_SetWidth(pauseDropdown, 120)
+    UIDropDownMenu_SetSelectedValue(pauseDropdown, options.pauseLocation or "RIGHT")
+    UIDropDownMenu_SetText(
+        pauseDropdown,
+        (options.pauseLocation == "LEFT") and "LEFT" or "RIGHT"
+    )
 
     --------------------------------------------------
     -- Slider: Font Size (8–20)
     --------------------------------------------------
-    local slider = CreateSlider(panel, "Font Size", 8, 20, 1, -145)
+    local slider = CreateSlider(panel, "Font Size", 8, 20, 1, -220)
 
-    -- Start from saved value if available, otherwise fallback
     local startingSize = (NS and NS.global and NS.global.fontSize)
         or (NS and NS.FONT_SIZE)
         or options.fontSize
@@ -204,77 +267,10 @@ local function BuildUI()
         value = math.floor(value + 0.5)
         self:SetValue(value)
 
-        -- Apply immediately + persist
         if NS and NS.ApplyFontSize then
             NS.ApplyFontSize(value)
         end
     end)
-
-
-    --------------------------------------------------
-    -- Dropdown: Anchor Location
-    --------------------------------------------------
-    local anchorDropdown = CreateDropdown(panel, "Anchor Location", 200, -180)
-
-    local function AnchorDropdown_Initialize(self, level)
-        local selected = options.anchor
-
-        for _, item in ipairs(anchorList) do
-            local info  = UIDropDownMenu_CreateInfo()
-            info.text   = item.text
-            info.value  = item.value
-            info.func   = function(btn)
-                options.anchor = btn.value
-                UIDropDownMenu_SetSelectedValue(self, btn.value)
-                UIDropDownMenu_SetText(self, item.text)
-                -- later: notify addon / save
-            end
-            info.checked = (item.value == selected)
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end
-
-    UIDropDownMenu_Initialize(anchorDropdown, AnchorDropdown_Initialize)
-    UIDropDownMenu_SetWidth(anchorDropdown, 120)
-    UIDropDownMenu_SetSelectedValue(anchorDropdown, options.anchor)
-
-    local initialAnchorText = "Center"
-    for _, item in ipairs(anchorList) do
-        if item.value == options.anchor then
-            initialAnchorText = item.text
-            break
-        end
-    end
-    UIDropDownMenu_SetText(anchorDropdown, initialAnchorText)
-
-    --------------------------------------------------
-    -- Dropdown: Grow Direction
-    --------------------------------------------------
-    local growDropdown = CreateDropdown(panel, "Grow Direction", 160, -240)
-
-    local function GrowDropdown_Initialize(self, level)
-        local selected = options.grow
-
-        for _, item in ipairs(growList) do
-            local info  = UIDropDownMenu_CreateInfo()
-            info.text   = item.text
-            info.value  = item.value
-            info.func   = function(btn)
-                options.grow = btn.value
-                UIDropDownMenu_SetSelectedValue(self, btn.value)
-                UIDropDownMenu_SetText(self, item.text)
-                -- later: notify addon / save
-            end
-            info.checked = (item.value == selected)
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end
-
-    UIDropDownMenu_Initialize(growDropdown, GrowDropdown_Initialize)
-    UIDropDownMenu_SetWidth(growDropdown, 120)
-    UIDropDownMenu_SetSelectedValue(growDropdown, options.grow)
-    UIDropDownMenu_SetText(growDropdown, (options.grow == "UP") and "Up" or "Down")
 end
-
 
 panel:SetScript("OnShow", BuildUI)

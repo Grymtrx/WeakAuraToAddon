@@ -177,9 +177,6 @@ frame:SetScript("OnDragStop", function(self)
     -- Keep NS in sync
     NS.db     = PVPQTimerDB
     NS.global = PVPQTimerDB.global
-
-    -- Debug (optional)
-    print("PVPQTimer: OnDragStop saving CENTER offset:", x, y)
 end)
 
 
@@ -322,6 +319,39 @@ pauseButton:SetScript("OnClick", function()
         PVEFrame_ToggleFrame("GroupFinderFrame")
     end
 end)
+
+--------------------------------------------------
+-- Pause button config (enable + location)
+--------------------------------------------------
+function NS.ApplyPauseButtonConfig()
+    if not NS.pauseButton then return end
+
+    local g = NS.global or {}
+
+    -- Default: enabled unless explicitly false
+    local enabled = g.enablePauseButton
+    if enabled == nil then
+        enabled = true
+    end
+    NS.pauseButtonEnabled = enabled
+
+    -- Anchor left or right of the frame
+    local loc = g.pauseLocation or "RIGHT"
+
+    pauseButton:ClearAllPoints()
+    if loc == "LEFT" then
+        -- Left side of the backdrop
+        pauseButton:SetPoint("RIGHT", frame, "LEFT", -4, 0)
+    else
+        -- Right side (default behavior)
+        pauseButton:SetPoint("LEFT", frame, "RIGHT", 4, 0)
+    end
+
+    -- Don’t force-show here; UpdateDisplay decides based on queues.
+    if not enabled then
+        pauseButton:Hide()
+    end
+end
 
 --------------------------------------------------
 -- Copy URL button (for "Queue Expired" banner)
@@ -468,12 +498,17 @@ function NS.UpdateDisplay()
         end
     end
 
-    -- Pause button is only meaningful if at least one queue is not paused
+    -- Pause button is only meaningful if at least one queue is not paused,
+    -- and the user has it enabled in options.
     if NS.pauseButton then
-        if anyUnpaused then
-            NS.pauseButton:Show()
-        else
+        if NS.pauseButtonEnabled == false then
             NS.pauseButton:Hide()
+        else
+            if anyUnpaused then
+                NS.pauseButton:Show()
+            else
+                NS.pauseButton:Hide()
+            end
         end
     end
 

@@ -69,6 +69,11 @@ frame:SetScript("OnEvent", function(_, event)
         NS.ApplyBackgroundEnabled(enabled)   -- nil => treated as true inside
     end
 
+    -- Re-apply pause button settings
+    if NS.ApplyPauseButtonConfig then
+        NS.ApplyPauseButtonConfig()
+    end
+
     NS.UpdateDisplay()
 
 
@@ -97,9 +102,6 @@ frame:SetScript("OnEvent", function(_, event)
             PVPQTimerDB.global.relativePoint = "CENTER"
             PVPQTimerDB.global.x             = x
             PVPQTimerDB.global.y             = y
-
-            -- optional debug
-            print("PVPQTimer: PLAYER_LOGOUT saving CENTER offset:", x, y)
         end
     end
 end)
@@ -118,11 +120,3 @@ frame:SetScript("OnUpdate", function(_, dt)
         NS.UpdateDisplay()
     end
 end)
-
-
--- Debug Account-wide saved position
-print("PVPQTimer:", UnitName("player"), "loaded position:",
-    NS.global.point or "nil",
-    NS.global.x or 0,
-    NS.global.y or 0
-)

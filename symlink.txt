@@ -35,4 +35,3 @@ rmdir "C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\PVPQTi
 > Always run CMD as Administrator when linking into Program Files.
 > /D means directory symlink — required for folders containing files.
 > Symlinks look like normal folders, but they act as pointers.
-

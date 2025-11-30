@@ -4,6 +4,6 @@
 ## Author: Grymtrx
 ## Version: 1.0
 
-ArenaWinrate_Core.lua
-ArenaWinrate_UI.lua
-ArenaWinrate_Events.lua
+core.lua
+ui.lua
+events.lua

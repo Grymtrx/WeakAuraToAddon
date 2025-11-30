@@ -1,0 +1,9 @@
+## Interface: 110205
+## Title: MinimalPVPBRackets
+## Notes: Toggle specific PVP brackets visibility.
+## Author: Greymatter (Grymtrx)
+## Version: 1.0.0
+## IconTexture: 
+## X-License: MIT
+
+core.lua

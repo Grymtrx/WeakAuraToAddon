@@ -1,1 +1,468 @@
 https://wago.io/SyAkugUJL/52
+
+
+function()
+    local currentTime = time()
+    if (aura_env.update_display and difftime(currentTime, aura_env.display_update_time) > 1) then
+        aura_env.update_display = false
+        aura_env.display_update_time = currentTime
+        aura_env.updateDisplay()
+    end
+    
+    local values = {"","","","","","","","","","",""}
+    
+    if (aura_env.config.showRealm) then 
+        values[1] = ""
+        values[2] = aura_env.text
+    else
+        values[1] = aura_env.text
+        values[2] = ""
+    end
+    
+    values[3] = "";
+    
+    local val = 4;
+    if (aura_env.config.showRewards) then
+        values[val] = aura_env.rewards_str
+        val = val + 1
+    end
+    
+    if (aura_env.config.showSoloRating) then 
+        values[val] = aura_env.rating_str_solo
+        val = val + 1
+    end
+    if (aura_env.config.show2v2Rating) then 
+        values[val] = aura_env.rating_str_2v2
+        val = val + 1
+    end
+    if (aura_env.config.show3v3Rating) then 
+        values[val] = aura_env.rating_str_3v3
+        val = val + 1
+    end
+    if (aura_env.config.showBlitzRating) then 
+        values[val] = aura_env.rating_str_Blitz
+        val = val + 1
+    end
+    if (aura_env.config.showRBGRating) then 
+        values[val] = aura_env.rating_str_RBG
+        val = val + 1
+    end
+    if (aura_env.config.showCatalyst) then 
+        values[val] = aura_env.cata_str
+        val = val + 1
+    end
+    if (aura_env.config.showConquest) then 
+        values[val] = aura_env.conq_str
+        val = val + 1
+    end 
+    
+    return values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11]
+end
+
+
+
+
+-- Events
+LOADING_SCREEN_DISABLED, PVP_RATED_STATS_UPDATE, CURRENCY_DISPLAY_UPDATE, WEEKLY_REWARDS_UPDATE
+
+
+function(event)
+    if (aura_env.logintime == nil or difftime(time(), aura_env.logintime) < aura_env.save_delay) then return false end
+    if (aura_env.update) then 
+        aura_env.updateProgressData()
+        aura_env.update_display = true
+        return true
+end end
+
+
+
+
+
+PVP_RATED_STATS_UPDATE
+
+
+function()
+    if (aura_env.logintime == nil or difftime(time(), aura_env.logintime) < aura_env.save_delay) then return false end
+    if (aura_env.update) then
+        aura_env.updateRatingData()
+        aura_env.update_display = true
+        return false
+    end
+end
+
+
+
+QUEST_LOG_UPDATE, LOADING_SCREEN_DISABLED
+
+
+function(event)
+    if (aura_env.logintime == nil or difftime(time(), aura_env.logintime) < aura_env.save_delay) then return false end
+    if (aura_env.update and aura_env.config.showSpark and (event == "LOADING_SCREEN_DISABLED" or (event == "QUEST_LOG_UPDATE" and C_Map.GetBestMapForUnit("player") == 2339))) then
+        aura_env.updateQuestData()
+        aura_env.update_display = true
+        return true
+    else return false
+    end
+end 
+
+
+
+
+
+-- Custom Init
+if (not aura_env.saved) then aura_env.saved = {} end
+aura_env.character = UnitName("player") 
+aura_env.realm = GetRealmName()
+aura_env.saveVar = aura_env.character .. "-" .. aura_env.realm
+aura_env.conqIcon = ""
+aura_env.maxConq = 0
+aura_env.maxCatalystQty = 8
+aura_env.conqCurrencyID = 1602
+aura_env.catalystCurrencyID = 3269
+local currInfo = C_CurrencyInfo.GetCurrencyInfo(aura_env.conqCurrencyID)
+aura_env.conqIcon = currInfo.iconFileID
+aura_env.maxConq = currInfo.maxQuantity
+aura_env.catalystIcon = C_CurrencyInfo.GetCurrencyInfo(aura_env.catalystCurrencyID).iconFileID
+
+aura_env.update = false
+aura_env.update_display = true
+aura_env.display_update_time = 0
+aura_env.save_delay = 12
+WeakAuras.GetRegion(aura_env.id, aura_env.cloneId):SetScale(aura_env.config.scale)
+aura_env.config.showCrafting = false
+
+aura_env.excluded_characters = {}
+aura_env.excluded_realms = {"Arena Champions - EU", "Arena Champions - NA", "EU Mythic Dungeons", "NA Mythic Dungeons"}
+
+for k,v in pairs(aura_env.config.excluded) do
+    table.insert(aura_env.excluded_characters, v.name)
+end
+
+for k,v in pairs(aura_env.config.excluded_realms) do
+    table.insert(aura_env.excluded_realms, v.name)
+end
+
+aura_env.in_table = function (tab, val)
+    for index, value in ipairs(tab) do
+        if value:lower() == val:lower() then
+            return true
+        end
+    end
+    return false
+end
+
+aura_env.clamp = function (val, min, max)
+    return math.min(math.max(val, min), max)
+end
+
+aura_env.version = 3.0
+aura_env.logintime = time()
+aura_env.season = GetCurrentArenaSeason()
+aura_env.keys_to_reset = {"ratingBlitz","ratingSolo", "rating2v2", "rating3v3", "ratingRBG", "earnedConq", "ownedConq", "ownedCatalyst","rewardsUnlocked"}
+
+local r,d,o = false;
+
+--saved data cleanup
+if aura_env.saved then
+    for k,v in pairs(aura_env.saved) do
+        
+        --delete characters that haven't been logged onto in over 30 days
+        if (not v["timestamp"] or (floor(difftime(time(), v["timestamp"]) / (24 * 60 * 60)) > 30 )) then 
+            aura_env.saved[k] = nil;
+            o = true;
+        end
+        
+        if (not v["version"] or v["version"] ~= aura_env.version) then
+            aura_env.saved[k] = nil;
+            r = true;
+        end
+        
+        if (aura_env.saved[k] and v["season"] < aura_env.season) then
+            for kk,vv in pairs(aura_env.saved[k]) do 
+                if (aura_env.in_table(aura_env.keys_to_reset,kk)) then 
+                    aura_env.saved[k][kk] = 0
+                end 
+                aura_env.saved[k]["tierIconIDSolo"], aura_env.saved[k]["tierIconID2v2"], aura_env.saved[k]["tierIconID3v3"], aura_env.saved[k]["tierIconIDRBG"], aura_env.saved[k]["tierIconIDBlitz"] = 2023043,2023043,2023043,2023043,2023043
+            end  
+        end
+        if (aura_env.in_table(aura_env.excluded_characters,k)) then
+            aura_env.saved[k] = nil;
+            d = true;
+        end
+    end
+    if (r) then print("PVP Cap Tracker: Some data saved with a different version of this aura was deleted.") r = false end;
+    if (d) then print("PVP Cap Tracker: Character data deleted.") d = false end;
+    if (o) then print("PVP Cap Tracker: An unplayed character was removed from the list.") o = false end   
+end
+
+
+
+-- update 
+aura_env.updateProgressData = function()  
+    local saveVar = aura_env.saveVar
+    if (not aura_env.saved[saveVar]) then
+        aura_env.saved[saveVar] = {} end
+    
+    local currentTime = time()
+    local weeklyReset = currentTime + C_DateAndTime.GetSecondsUntilWeeklyReset()
+    local classColor = "c" .. RAID_CLASS_COLORS[select(2, UnitClass("player"))].colorStr
+    local specID = GetSpecialization()   
+    local specIcon = select(4,GetSpecializationInfo(specID))
+    
+    --Conquest  
+    local conqInfo = C_CurrencyInfo.GetCurrencyInfo(aura_env.conqCurrencyID)
+    local ownedQty = conqInfo.quantity
+    local earnedQty = conqInfo.totalEarned  
+    --Catalyst
+    local catalystInfo = C_CurrencyInfo.GetCurrencyInfo(aura_env.catalystCurrencyID)
+    local ownedCatalystQty = catalystInfo.quantity
+    
+    
+    --Vault rewards count
+    local rewardsUnlocked = 0
+    for _, activity in pairs(C_WeeklyRewards.GetActivities()) do
+        if (activity.threshold > 0 and activity.progress >= activity.threshold) then
+            rewardsUnlocked = rewardsUnlocked + 1
+        end
+    end
+    
+    --Update saved data
+    aura_env.saved[saveVar]["name"] = aura_env.character
+    aura_env.saved[saveVar]["icon"] = specIcon
+    aura_env.saved[saveVar]["specid"] = specID
+    aura_env.saved[saveVar]["color"] = classColor
+    aura_env.saved[saveVar]["earnedConq"] = earnedQty
+    aura_env.saved[saveVar]["ownedConq"] = ownedQty
+    aura_env.saved[saveVar]["ownedCatalyst"] = ownedCatalystQty
+    aura_env.saved[saveVar]["version"] = aura_env.version
+    aura_env.saved[saveVar]["timestamp"] = time()
+    aura_env.saved[saveVar]["weeklyreset"] = weeklyReset
+    aura_env.saved[saveVar]["season"] = aura_env.season
+    aura_env.saved[saveVar]["rewardsUnlocked"] = rewardsUnlocked
+    
+    --generic info
+    aura_env.conqIcon = conqInfo.iconFileID
+    aura_env.maxConq = conqInfo.maxQuantity
+    aura_env.catalystIcon = catalystInfo.iconFileID
+    return true
+end
+
+--rating
+aura_env.updateRatingData = function ()
+    local saveVar = aura_env.saveVar
+    local specID = GetSpecialization()  
+    if (not aura_env.saved[saveVar]) then aura_env.updateProgressData() end
+    
+    local _, ratingSolo, tierIconIDSolo, rating2v2, tierIconID2v2, rating3v3, tierIconID3v3, ratingRBG, tierIconIDRBG, tierIconIDBlitz, ratingBlitz, pvpTier
+    ratingSolo, _, _, _, _, _, _, _, _, pvpTier = GetPersonalRatedInfo(7)
+    tierIconIDSolo = C_PvP.GetPvpTierInfo(pvpTier).tierIconID
+    
+    rating2v2, _, _, _, _, _, _, _, _, pvpTier = GetPersonalRatedInfo(1)
+    tierIconID2v2 = C_PvP.GetPvpTierInfo(pvpTier).tierIconID
+    
+    rating3v3, _, _, _, _, _, _, _, _, pvpTier = GetPersonalRatedInfo(2)
+    tierIconID3v3 = C_PvP.GetPvpTierInfo(pvpTier).tierIconID
+    
+    ratingRBG, _, _, _, _, _, _, _, _, pvpTier = GetPersonalRatedInfo(4)
+    tierIconIDRBG = C_PvP.GetPvpTierInfo(pvpTier).tierIconID
+    
+    ratingBlitz, _, _, _, _, _, _, _, _, pvpTier = GetPersonalRatedInfo(9) -- todo change into correct id
+    tierIconIDBlitz = C_PvP.GetPvpTierInfo(pvpTier).tierIconID
+    
+    if (not aura_env.saved[saveVar]["ratingSolo"]  
+        or (aura_env.saved[saveVar]["SpecIDSolo"] and specID == aura_env.saved[saveVar]["SpecIDSolo"]) 
+        or (aura_env.saved[saveVar]["ratingSolo"] and ratingSolo > aura_env.saved[saveVar]["ratingSolo"])) then
+        aura_env.saved[saveVar]["ratingSolo"] = ratingSolo
+        aura_env.saved[saveVar]["SpecIDSolo"] = specID
+        aura_env.saved[saveVar]["tierIconIDSolo"] = tierIconIDSolo
+    end 
+    
+    if (not aura_env.saved[saveVar]["ratingBlitz"]  
+        or (aura_env.saved[saveVar]["SpecIDBlitz"] and specID == aura_env.saved[saveVar]["SpecIDBlitz"]) 
+        or (aura_env.saved[saveVar]["ratingBlitz"] and ratingBlitz > aura_env.saved[saveVar]["ratingBlitz"])) then
+        aura_env.saved[saveVar]["ratingBlitz"] = ratingBlitz
+        aura_env.saved[saveVar]["SpecIDBlitz"] = specID
+        aura_env.saved[saveVar]["tierIconIDBlitz"] = tierIconIDBlitz
+    end 
+    
+    aura_env.saved[saveVar]["rating2v2"] = rating2v2
+    aura_env.saved[saveVar]["tierIconID2v2"] = tierIconID2v2
+    aura_env.saved[saveVar]["rating3v3"] = rating3v3
+    aura_env.saved[saveVar]["tierIconID3v3"] = tierIconID3v3
+    aura_env.saved[saveVar]["ratingRBG"] = ratingRBG
+    aura_env.saved[saveVar]["tierIconIDRBG"] = tierIconIDRBG
+    
+    return true
+end
+
+--quest
+aura_env.updateQuestData = function()
+    local saveVar = aura_env.saveVar
+    if (not aura_env.saved[saveVar]) then aura_env.updateProgressData() end
+    --pvp spark quest
+    local sparkQuests = {81793,81795,81796,81794,86853,90781,90781} 
+    aura_env.saved[saveVar]["spark"] = nil
+    for k,v in pairs(sparkQuests) do
+        if (C_QuestLog.IsQuestFlaggedCompleted(v)) then
+            aura_env.saved[saveVar]["spark"] = true 
+        end
+    end
+    
+    local craftingQuests = {72169,72166,72168,72167,72171,72170,80388,80386,80385} 
+    aura_env.saved[saveVar]["crafting"] = nil
+    for k,v in pairs(craftingQuests) do
+        if (C_QuestLog.IsQuestFlaggedCompleted(v)) then
+            aura_env.saved[saveVar]["crafting"] = true 
+        end
+    end
+    return true
+end
+
+
+--sorting
+aura_env.sortList = function()
+    local sorting_table = {}
+    local sort_keys = {"name", "ownedConq", "ratingSolo", "rating2v2", "rating3v3", "ratingRBG", "ratingBlitz", "specid"}
+    for k,v in pairs(aura_env.saved) do
+        local id = #sorting_table+1
+        local value = 0
+        if (v[sort_keys[aura_env.config.sortKey]] ~= nil) then value = v[sort_keys[aura_env.config.sortKey]] end
+        table.insert(sorting_table, id, {["val"] = value, ["idx"] = k})
+    end
+    
+    if (aura_env.config.sortDir == 1) then 
+        table.sort(sorting_table, function(a,b) return a.val > b.val end) 
+    else
+        table.sort(sorting_table, function(a,b) return a.val < b.val end) 
+    end
+    
+    return sorting_table
+    
+end
+
+
+--display
+aura_env.updateDisplay = function()
+    
+    local startLine = "\124"
+    local endLine = "\124r"
+    local displayString = "";
+    local capString = "Cap";
+    local conqString = format("|T%d:0|t",aura_env.conqIcon)
+    local cataString = format("|T%d:0|t",aura_env.catalystIcon)
+    local ratingStringSolo = "Solo"
+    local ratingString2v2 = "2v2"
+    local ratingString3v3 = "3v3"
+    local ratingStringBlitz = "Blitz"
+    local ratingStringRBG = "RBG"
+    local rewardsString = format("|T%d:0|t",4066373)
+    local offset = "|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n|n"
+    local unlockColor
+    local sorting_table = aura_env.sortList()
+    for k,val in ipairs(sorting_table) do 
+        local v = aura_env.saved[val["idx"]]
+        
+        if (v["version"] == aura_env.version and v['name'] ~= nil) then
+            if (v["weeklyreset"] == nil or v["weeklyreset"] < time()) then 
+                unlockColor = "cffC39BD3" 
+                v["rewardsUnlocked"] = 0
+                v["spark"] = false
+            else unlockColor = aura_env.color[v["unlocks"]] end
+            if (not v["rewardsUnlocked"]) then v["rewardsUnlocked"] = 0 end
+            
+            offset = offset:sub(1, -3)
+            
+            local displayName = v["name"]
+            
+            if (aura_env.config.showRealm) then displayName = val["idx"] end
+            
+            displayString = displayString .. "|n" .. startLine .. v["color"] .. format("|T%d:0|t%s",v["icon"],displayName) .. endLine 
+            
+            if (aura_env.config.showRewards) then
+                rewardsString = rewardsString .. "|n" .. startLine .. aura_env.color[aura_env.clamp(v["rewardsUnlocked"],0, 3)] .. v["rewardsUnlocked"] .. endLine
+            end
+            
+            
+            if (aura_env.config.showSpark and v["spark"]) then 
+                displayString = displayString .. format("|T%d:0|t",4638431) 
+            end
+            
+            if (aura_env.config.showCrafting and v["crafting"]) then
+                displayString = displayString .. format("|T%d:0|t",4693222)   
+            end
+            
+            if (aura_env.config.showConquest) then
+                conqString =  conqString .. "|n" .. startLine .. aura_env.color[1] .. v["ownedConq"]
+                if (aura_env.maxConq > 0 and aura_env.config.showConqToEarn) then 
+                    conqString = conqString .. " (" .. aura_env.maxConq-v["earnedConq"] .. ")" 
+                end 
+                conqString = conqString .. endLine 
+            end 
+            
+            if (aura_env.config.showCatalyst == true) then
+                cataString = cataString .. "|n" .. startLine .. aura_env.color[1] .. v["ownedCatalyst"]
+                if (aura_env.maxCatalystQty > 0) then 
+                    cataString =  cataString .. "/" .. aura_env.maxCatalystQty 
+                end 
+                cataString = cataString .. endLine 
+            end 
+            
+            if (aura_env.config.showSoloRating) then
+                if (v["ratingSolo"] ~= nil) then
+                    ratingStringSolo = ratingStringSolo .. "|n" .. startLine .. aura_env.color[1] .. format("|T%d:0|t%s", v["tierIconIDSolo"], "" .. v["ratingSolo"])
+                else ratingStringSolo = ratingStringSolo .. "|n" end
+                ratingStringSolo = ratingStringSolo .. endLine 
+            end 
+            if (aura_env.config.show2v2Rating) then
+                if (v["rating2v2"] ~= nil) then
+                    ratingString2v2 = ratingString2v2 .. "|n" .. startLine .. aura_env.color[1] .. format("|T%d:0|t%s", v["tierIconID2v2"], "" .. v["rating2v2"])
+                else ratingString2v2 = ratingString2v2 .. "|n" end
+                ratingString2v2 = ratingString2v2 .. endLine 
+            end 
+            if (aura_env.config.show3v3Rating) then
+                if (v["rating3v3"] ~= nil) then
+                    ratingString3v3 = ratingString3v3 .. "|n" .. startLine .. aura_env.color[1] .. format("|T%d:0|t%s", v["tierIconID3v3"], "" .. v["rating3v3"])
+                else ratingString3v3 = ratingString3v3 .. "|n" end
+                ratingString3v3 = ratingString3v3 .. endLine 
+            end 
+            if (aura_env.config.showRBGRating) then
+                if (v["ratingRBG"] ~= nil) then
+                    ratingStringRBG = ratingStringRBG .. "|n" .. startLine .. aura_env.color[1] .. format("|T%d:0|t%s", v["tierIconIDRBG"], "" .. v["ratingRBG"])
+                else ratingStringRBG = ratingStringRBG .. "|n" end
+                ratingStringRBG = ratingStringRBG .. endLine 
+            end 
+            if (aura_env.config.showBlitzRating) then
+                if (v["ratingBlitz"] ~= nil) then
+                    ratingStringBlitz = ratingStringBlitz .. "|n" .. startLine .. aura_env.color[1] .. format("|T%d:0|t%s", v["tierIconIDBlitz"], "" .. v["ratingBlitz"])
+                else ratingStringBlitz = ratingStringBlitz .. "|n" end
+                ratingStringBlitz = ratingStringBlitz .. endLine 
+            end 
+            
+        end
+    end
+    aura_env.text = displayString .. offset
+    aura_env.rewards_str = rewardsString .. offset
+    aura_env.conq_str = conqString .. offset
+    aura_env.cata_str = cataString .. offset
+    aura_env.rating_str_solo = ratingStringSolo .. offset
+    aura_env.rating_str_2v2 = ratingString2v2 .. offset
+    aura_env.rating_str_3v3 = ratingString3v3 .. offset 
+    aura_env.rating_str_Blitz = ratingStringBlitz .. offset
+    aura_env.rating_str_RBG = ratingStringRBG .. offset
+end
+
+--disable saving 
+if (not aura_env.in_table(aura_env.excluded_characters, aura_env.saveVar) and not aura_env.in_table(aura_env.excluded_realms, aura_env.realm)) then
+    aura_env.update = true 
+end
+
+aura_env.text = ""
+aura_env.conq_str = "" 
+aura_env.cata_str = "" 
+aura_env.rating_str_solo = "" 
+aura_env.rating_str_2v2 = "" 
+aura_env.rating_str_3v3 = ""
+aura_env.rating_str_RBG = ""
+aura_env.rating_str_Blitz = ""
+aura_env.rewards_str = "" 
+aura_env.color = { [0] = "cffFF0000", [1] = "cffFFA500", [2] = "cffFFB90F", [3] = "cffA2CD5A" }

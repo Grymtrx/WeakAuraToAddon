@@ -3,10 +3,10 @@ local addonName, ns = ...
 local CLASS_ORDER = ns.CLASS_ORDER
 local ICONS = ns.ICONS
 local TOTAL_CLASSES = #CLASS_ORDER
-local SECTION_GAP = 3 -- Horizontal spacing between collected/missing/unknown icon groups
+local SECTION_GAP = 4 -- Horizontal spacing between collected/missing/unknown icon groups
 
-local ICON_SIZE = 19
-local ICON_SPACING = 1
+local ICON_SIZE = 18
+local ICON_SPACING = 2
 local ICONS_PER_ROW = 15
 
 local frame
@@ -100,11 +100,11 @@ local function EnsureFrame()
             local collected = ns.GetCollectedSets()
             local state = collected and collected[self.class]
             if state == nil then
-                GameTooltip:AddLine("Log onto this class to register Elite appearance status.", 1, 0.82, 0)
+                GameTooltip:AddLine("Log onto this class to register Elite appearance status.", 0.5, 0.5, 0.5)
             elseif state then
                 GameTooltip:AddLine("Elite appearance collected", 0.2, 1, 0.2)
             else
-                GameTooltip:AddLine("Elite appearance not collected", 1, 0.25, 0.25)
+                GameTooltip:AddLine("Elite appearance not collected", 1, 0.1, 0.1)
             end
 
             GameTooltip:Show()
@@ -137,9 +137,9 @@ function ns.UpdateDisplay()
     for _, icon in ipairs(frame.icons) do
         local hasSet = collected and collected[icon.class]
         if hasSet == nil then
-            icon.texture:SetAlpha(0.25)
+            icon.texture:SetAlpha(0.2)
             icon.texture:SetDesaturated(true)
-            icon.texture:SetVertexColor(1, 1, 1)
+            icon.texture:SetVertexColor(0.7, 0.7, 0.7)
             unknownOrder[#unknownOrder + 1] = icon.class
         elseif hasSet then
             icon.texture:SetAlpha(1)

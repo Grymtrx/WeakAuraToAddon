@@ -6,7 +6,7 @@ local TOTAL_CLASSES = #CLASS_ORDER
 local SECTION_GAP = 4 -- Horizontal spacing between collected/missing/unknown icon groups
 
 local ICON_SIZE = 18
-local ICON_SPACING = 2
+local ICON_SPACING = 1
 local ICONS_PER_ROW = 15
 
 local frame
@@ -88,6 +88,12 @@ local function EnsureFrame()
         tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         icon.texture = tex
 
+        local border = icon:CreateTexture(nil, "BACKGROUND", nil, -1)
+        border:SetColorTexture(0, 0, 0, 1)
+        border:SetPoint("TOPLEFT", icon, -1, 1)
+        border:SetPoint("BOTTOMRIGHT", icon, 1, -1)
+        icon.border = border
+
         icon:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             local classColor = RAID_CLASS_COLORS and RAID_CLASS_COLORS[self.class]
@@ -137,9 +143,9 @@ function ns.UpdateDisplay()
     for _, icon in ipairs(frame.icons) do
         local hasSet = collected and collected[icon.class]
         if hasSet == nil then
-            icon.texture:SetAlpha(0.2)
+            icon.texture:SetAlpha(0.5)
             icon.texture:SetDesaturated(true)
-            icon.texture:SetVertexColor(0.7, 0.7, 0.7)
+            icon.texture:SetVertexColor(1, 1, 1)
             unknownOrder[#unknownOrder + 1] = icon.class
         elseif hasSet then
             icon.texture:SetAlpha(1)
@@ -148,9 +154,9 @@ function ns.UpdateDisplay()
             collectedCount = collectedCount + 1
             collectedOrder[#collectedOrder + 1] = icon.class
         else
-            icon.texture:SetAlpha(0.4)
+            icon.texture:SetAlpha(0.3)
             icon.texture:SetDesaturated(false)
-            icon.texture:SetVertexColor(0.8, 0.2, 0.2)
+            icon.texture:SetVertexColor(1, 0, 0)
             missingOrder[#missingOrder + 1] = icon.class
         end
     end

@@ -1,0 +1,11 @@
+## Interface: 110007
+## Title: Elite Set Collection Tracker
+## Notes: Tracks which PvP Elite sets have been collected per class and displays the status on the Conquest panel.
+## Author: Grymtrx
+## Version: 1.0.0
+## SavedVariables: EliteSetCollectionTrackerDB
+
+core.lua
+ui.lua
+events.lua
+

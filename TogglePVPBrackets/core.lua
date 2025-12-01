@@ -58,7 +58,7 @@ local function Setup()
 
     toggleCB.text = toggleCB:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     toggleCB.text:SetPoint("LEFT", toggleCB, "RIGHT", 4, 0)
-    toggleCB.text:SetText("Hide RBGs")
+    toggleCB.text:SetText("Hide BGs")
 
     toggleCB:SetScript("OnClick", function(self)
         if self:GetChecked() then

@@ -15,10 +15,6 @@ local function ApplyFilter(frame)
     frame.Arena3v3:ClearAllPoints()
     frame.Arena3v3:SetPoint("TOPLEFT", frame.Arena2v2, "BOTTOMLEFT", 0, 0)
 
-    if toggleCB then
-        toggleCB:ClearAllPoints()
-        toggleCB:SetPoint("TOPLEFT", frame.Arena3v3, "BOTTOMLEFT", 2, -2)
-    end
 end
 
 local function RemoveFilter(frame)
@@ -40,10 +36,6 @@ local function RemoveFilter(frame)
     frame.RatedBG:ClearAllPoints()
     frame.RatedBG:SetPoint("TOPLEFT", frame.RatedBGBlitz, "BOTTOMLEFT", 0, 0)
 
-    if toggleCB then
-        toggleCB:ClearAllPoints()
-        toggleCB:SetPoint("TOPLEFT", frame.RatedBG, "BOTTOMLEFT", 2, -2)
-    end
 end
 
 local function Setup()
@@ -54,9 +46,9 @@ local function Setup()
     frame._TogglePVPBracketsSetup = true
 
     toggleCB = CreateFrame("CheckButton", "TogglePVPBracketsToggle", frame, "UICheckButtonTemplate")
-    toggleCB:SetSize(24, 24)
+    toggleCB:SetSize(15, 15)
 
-    toggleCB.text = toggleCB:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    toggleCB.text = toggleCB:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     toggleCB.text:SetPoint("LEFT", toggleCB, "RIGHT", 4, 0)
     toggleCB.text:SetText("Hide BGs")
 
@@ -67,6 +59,11 @@ local function Setup()
             RemoveFilter(frame)
         end
     end)
+
+    if ConquestJoinButton then
+        toggleCB:ClearAllPoints()
+        toggleCB:SetPoint("RIGHT", ConquestJoinButton, "LEFT", -120, 0)
+    end
 
     toggleCB:SetChecked(true)
     ApplyFilter(frame)

@@ -44,4 +44,4 @@ driver:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_ENTERING_WORLD" or event == "TRANSMOG_COLLECTION_SOURCE_ADDED" or event == "PVP_RATED_STATS_UPDATE" then
         RefreshCollections()
     end
-end
+end)

@@ -1,0 +1,11 @@
+## Interface: 110007
+## Title: Season Progress
+## Notes: Displays a progress bar showing how much of the current PvP season has elapsed.
+## Author: Grymtrx
+## Version: 1.0.0
+## SavedVariables: SeasonProgressDB
+
+core.lua
+ui.lua
+events.lua
+

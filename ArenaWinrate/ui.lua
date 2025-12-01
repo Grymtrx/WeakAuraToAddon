@@ -20,7 +20,7 @@ local function GetWinrateColorCode(wr)
     elseif wr < 80 then
         return "|cffff8000"   -- Orange
     elseif wr < 90 then
-        return "|cffe6cc80"   -- Light Gold
+        return "|cff00ccff"   -- Blizzard Blue
     else
         return "|cff00ccff"   -- Blizzard Blue
     end
@@ -41,7 +41,7 @@ function ns.CreateBracketFrames()
             -- Left-anchored so text grows to the right
             text:SetPoint("LEFT", f, "LEFT", 0, 2)
             text:SetJustifyH("LEFT")
-            text:SetTextColor(0.584, 0.580, 0.580, 0.75)
+            text:SetTextColor(0.584, 0.580, 0.580, 0.85)
 
             local font, size = text:GetFont()
             text:SetFont(font, size, "OUTLINE")

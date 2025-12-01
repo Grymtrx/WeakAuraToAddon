@@ -2,6 +2,7 @@
 ## Title: Elite Set Collection Tracker
 ## Notes: Tracks which PvP Elite sets have been collected per class and displays the status on the Conquest panel.
 ## Author: Grymtrx
+## IconTexture: Interface\AddOns\EliteSetCollectionTracker\media\icon.tga
 ## Version: 1.0.0
 ## SavedVariables: EliteSetCollectionTrackerDB
 

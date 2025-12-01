@@ -6,6 +6,7 @@ local UpdateSets              = ns.UpdateSets
 local UpdateDisplay           = ns.UpdateDisplay
 local TryAttachToConquestFrame = ns.TryAttachToConquestFrame
 
+-- Lightweight dispatcher frame for the addon lifecycle
 local driver = CreateFrame("Frame")
 driver:RegisterEvent("ADDON_LOADED")
 driver:RegisterEvent("PLAYER_LOGIN")
@@ -14,6 +15,7 @@ driver:RegisterEvent("TRANSMOG_COLLECTION_SOURCE_ADDED")
 driver:RegisterEvent("PVP_RATED_STATS_UPDATE")
 
 local function RefreshCollections()
+    -- UpdateSets() returns true if something changed, avoiding needless UI churn
     if UpdateSets() then
         UpdateDisplay()
     end
@@ -30,6 +32,7 @@ driver:SetScript("OnEvent", function(_, event, arg1)
                 TryAttachToConquestFrame()
             end
         elseif arg1 == "Blizzard_PVPUI" then
+            -- Late load of the PvP UI; hook our frame once Blizzard's XML is available
             TryAttachToConquestFrame()
         end
 

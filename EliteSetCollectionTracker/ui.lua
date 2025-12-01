@@ -3,7 +3,7 @@ local addonName, ns = ...
 local CLASS_ORDER = ns.CLASS_ORDER
 local ICONS = ns.ICONS
 local TOTAL_CLASSES = #CLASS_ORDER
-local SECTION_GAP = 3
+local SECTION_GAP = 3 -- Horizontal spacing between collected/missing/unknown icon groups
 
 local ICON_SIZE = 19
 local ICON_SPACING = 1
@@ -18,6 +18,9 @@ local function GetClassName(token)
     return male or female or token
 end
 
+-- order: linear list of class tokens in desired display order
+-- gapBefore: table keyed by linear index storing how many section gaps precede that icon
+-- gapSections: number of section boundaries in the layout (for overall width calculation)
 local function LayoutIcons(order, gapBefore, gapSections)
     if not frame or not frame.label then
         return
@@ -53,7 +56,7 @@ local function EnsureFrame()
 
     frame = CreateFrame("Frame", "EliteSetCollectionTrackerFrame", ConquestFrame)
     frame:SetFrameStrata("DIALOG")
-    -- Root frame anchors to the ConquestFrame's bottom-right corner
+    -- Root frame anchors to the ConquestFrame's top-right corner so it mirrors Blizzard UI layout
     frame:SetPoint("TOPRIGHT", ConquestFrame, "TOPRIGHT", -2, -40)
     frame:Hide()
 
@@ -64,7 +67,7 @@ local function EnsureFrame()
 
     local label = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     -- Label anchors to the frame's top-right so text aligns with the icons
-    label:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -9, -9)
+    label:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -9, -12)
     label:SetJustifyH("RIGHT")
     label:SetTextColor(1, 0.82, 0)
     label:SetText("(0/" .. TOTAL_CLASSES .. ") Elite Sets Collected")
@@ -118,6 +121,7 @@ local function EnsureFrame()
     return frame
 end
 
+-- Refreshes icon state + ordering each time data changes or Conquest frame is shown
 function ns.UpdateDisplay()
     if not frame or not frame:IsShown() then
         return
@@ -127,7 +131,7 @@ function ns.UpdateDisplay()
     local collectedOrder = {}
     local missingOrder = {}
     local unknownOrder = {}
-    local gapBefore = {}
+    local gapBefore = {} -- Index -> number of section boundaries preceding this icon
 
     local collectedCount = 0
     for _, icon in ipairs(frame.icons) do
@@ -153,6 +157,7 @@ function ns.UpdateDisplay()
 
     local sorted = {}
     local gapCount = 0
+    -- Append classes for a specific state, tracking how many gaps precede each entry
     local function appendSection(section)
         if #section == 0 then
             return
@@ -168,6 +173,7 @@ function ns.UpdateDisplay()
     appendSection(missingOrder)
     appendSection(unknownOrder)
 
+    -- gapCount increments after every appended section, so subtract one to get actual boundaries
     LayoutIcons(sorted, gapBefore, math.max(gapCount - 1, 0))
 
     if frame.label then

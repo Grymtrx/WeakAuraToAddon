@@ -1,5 +1,6 @@
 local addonName, ns = ...
 
+-- Static class order drives icon layout + saved state keys
 local CLASS_ORDER = {"DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK", "PALADIN", "PRIEST", "ROGUE", "SHAMAN", "WARLOCK", "WARRIOR"}
 ns.CLASS_ORDER = CLASS_ORDER
 
@@ -39,6 +40,7 @@ ns.ICONS = ICONS
 
 local playerClass = select(2, UnitClass("player")) or "WARRIOR"
 
+-- Track the player's current class (characters can faction-change or race-change mid session)
 function ns.RefreshPlayerClass()
     local _, classToken = UnitClass("player")
     if classToken then
@@ -48,6 +50,7 @@ end
 
 local db
 
+-- Simple SavedVariables bootstrap
 function ns.InitDatabase()
     if type(EliteSetCollectionTrackerDB) ~= "table" then
         EliteSetCollectionTrackerDB = {}
@@ -71,6 +74,7 @@ local function IsEliteSet(set)
     return set and set.limitedTimeSet and (set.description == "Elite")
 end
 
+-- Re-scan the transmog collection and persist only the latest elite season's completion flags
 function ns.UpdateSets()
     if not db or not C_TransmogSets or not C_TransmogSets.GetAllSets then
         return false
@@ -91,7 +95,7 @@ function ns.UpdateSets()
         if IsEliteSet(set) and set.patchID then
             if set.patchID > patchID then
                 patchID = set.patchID
-                wipe(collected)
+                wipe(collected) -- new season detected; discard stale class flags
                 newValue = false
             end
 

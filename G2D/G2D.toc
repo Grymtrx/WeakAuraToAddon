@@ -1,7 +1,8 @@
 ## Interface: 110007
-## Title: G2D - Token Price Printer
-## Notes: Prints the current WoW Token gold value.
+## Title: G2D - Token Value Display
+## Notes: Shows WoW Token price, bag gold, and USD value in one line.
 ## Author: Codex
 ## Version: 1.0.0
 
-G2D.lua
+TokenPrice.lua
+BagValue.lua

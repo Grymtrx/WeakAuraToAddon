@@ -36,6 +36,7 @@
         "UIDropDownMenu_SetText",
         "UIDropDownMenu_AddButton",
         "UIDropDownMenu_CreateInfo",
-        "UIWidgetTopCenterContainerFrame"
+        "UIWidgetTopCenterContainerFrame",
+        "UIParentLoadAddOn"
     ]
 }

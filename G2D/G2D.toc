@@ -1,0 +1,7 @@
+## Interface: 110007
+## Title: G2D - Token Price Printer
+## Notes: Prints the current WoW Token gold value.
+## Author: Codex
+## Version: 1.0.0
+
+G2D.lua

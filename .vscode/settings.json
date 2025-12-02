@@ -35,6 +35,7 @@
         "UIDropDownMenu_SetSelectedValue",
         "UIDropDownMenu_SetText",
         "UIDropDownMenu_AddButton",
-        "UIDropDownMenu_CreateInfo"
+        "UIDropDownMenu_CreateInfo",
+        "UIWidgetTopCenterContainerFrame"
     ]
 }

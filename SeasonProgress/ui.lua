@@ -19,13 +19,13 @@ local function EnsureFrame()
     end
 
     frame = CreateFrame("Frame", "SeasonProgressFrame", UIParent)
-    frame:SetSize(220, 55)
+    frame:SetSize(220, 40)
     frame:SetPoint("TOP", UIParent, "TOP", 0, -80)
     frame:Hide()
     frame:SetFrameStrata("DIALOG")
 
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    title:SetPoint("TOP", frame, "TOP", 0, -4)
+    title:SetPoint("TOP", frame, "TOP", 0, 0)
     title:SetText("Season Progress")
     title:SetTextColor(1, 0.82, 0)
     frame.title = title
@@ -33,8 +33,8 @@ local function EnsureFrame()
     local bar = CreateFrame("StatusBar", nil, frame)
     bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
     -- Bar dimensions (width x height): adjust here for different footprint
-    bar:SetSize(160, 5)
-    bar:SetPoint("TOP", title, "BOTTOM", 0, -10)
+    bar:SetSize(155, 5)
+    bar:SetPoint("TOP", title, "BOTTOM", 0, -1)
     bar:SetMinMaxValues(0, 1)
     bar:SetStatusBarColor(CONFIRMED_COLOR[1], CONFIRMED_COLOR[2], CONFIRMED_COLOR[3])
     frame.bar = bar
@@ -129,7 +129,7 @@ function ns.AttachToConquestFrame()
 
     f:ClearAllPoints()
     -- Anchor whole widget 300px to the right of the Conquest Join button
-    f:SetPoint("CENTER", ConquestJoinButton, "CENTER", 278, 0)
+    f:SetPoint("CENTER", ConquestJoinButton, "CENTER", 278, -12)
 
     if ConquestFrame and ConquestFrame:IsShown() then
         f:Show()

@@ -1,649 +1,141 @@
-local ADDON_NAME = ...
-local tracker = CreateFrame("Frame")
+local addonName, ns = ...
 
-local CURRENT_VERSION = 1
-local CONQUEST_CURRENCY_ID = 1602
-local DATA_DELAY_SECONDS = 8
-local STALE_DATA_SECONDS = 30 * 24 * 60 * 60
-local ROW_HEIGHT = 20
-local COLUMN_SPACING = 12
-local DEBUG_LOGGING = false
+local frame
+local updateThrottle = 0
 
-local trackedBrackets = {
-    { key = "ratingSolo", label = "Solo", bracket = 7, iconField = "tierIconIDSolo", perSpec = true },
-    { key = "rating2v2", label = "2v2", bracket = 1, iconField = "tierIconID2v2" },
-    { key = "rating3v3", label = "3v3", bracket = 2, iconField = "tierIconID3v3" },
-}
+local CONFIRMED_COLOR = { 0.0, 0.45, 0.1 }
+local PROJECTED_COLOR = { 0.75, 0.55, 0.0 }
 
-local columns = {
-    { key = "name", label = "Character", width = 150, justify = "LEFT" },
-}
-
-for _, bracket in ipairs(trackedBrackets) do
-    table.insert(columns, {
-        key = bracket.key,
-        label = bracket.label,
-        width = bracket.key == "ratingSolo" and 210 or 70,
-        justify = "CENTER",
-        iconField = bracket.iconField,
-    })
-end
-
-table.insert(columns, {
-    key = "conquestOwned",
-    label = "Conquest",
-    width = 120,
-    justify = "CENTER",
-})
-
-local columnOffsets = {}
-do
-    local offset = 0
-    for index, info in ipairs(columns) do
-        columnOffsets[index] = offset
-        offset = offset + info.width + COLUMN_SPACING
+local function FormatDuration(seconds)
+    if seconds <= 0 then
+        return "0"
     end
+    return tostring(math.floor(seconds / 86400 + 0.5))
 end
 
-local function safeCurrencyInfo(currencyID)
-    local info = C_CurrencyInfo.GetCurrencyInfo(currencyID)
-    if not info then
-        return {
-            quantity = 0,
-            totalEarned = 0,
-            iconFileID = 0,
-            maxQuantity = 0,
-        }
+local function EnsureFrame()
+    if frame then
+        return frame
     end
-    return info
+
+    frame = CreateFrame("Frame", "SeasonProgressFrame", UIParent)
+    frame:SetSize(220, 40)
+    frame:SetPoint("TOP", UIParent, "TOP", 0, -80)
+    frame:Hide()
+    frame:SetFrameStrata("DIALOG")
+
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    title:SetPoint("TOP", frame, "TOP", 0, 0)
+    title:SetText("Season Progress")
+    title:SetTextColor(1, 0.82, 0)
+    frame.title = title
+
+    local bar = CreateFrame("StatusBar", nil, frame)
+    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+    -- Bar dimensions (width x height): adjust here for different footprint
+    bar:SetSize(155, 5)
+    bar:SetPoint("TOP", title, "BOTTOM", 0, -1)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetStatusBarColor(CONFIRMED_COLOR[1], CONFIRMED_COLOR[2], CONFIRMED_COLOR[3])
+    frame.bar = bar
+
+    local bg = bar:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.3, 0.0, 0.0, 0.8)
+    frame.barBG = bg
+
+    local border = frame:CreateTexture(nil, "ARTWORK")
+    border:SetPoint("TOPLEFT", bar, -1, 1)
+    border:SetPoint("BOTTOMRIGHT", bar, 1, -1)
+    border:SetColorTexture(0, 0, 0, 1)
+    frame.barBorder = border
+
+    bar:EnableMouse(true)
+    bar:SetScript("OnEnter", function()
+        local startTimestamp, endTimestamp = ns.GetSeasonWindow()
+        if not startTimestamp or not endTimestamp then
+            return
+        end
+        local projected = ns.IsSeasonProjected()
+        GameTooltip:SetOwner(bar, "ANCHOR_TOP")
+        GameTooltip:AddLine("Season Window", 1, 0.82, 0)
+        GameTooltip:AddLine(date("%m-%d-%Y", startTimestamp) .. " -> " .. date("%m-%d-%Y", endTimestamp), 1, 1, 1)
+        GameTooltip:AddLine(projected and "Projected" or "Confirmed", projected and 1 or 0.75, projected and 0.82 or 1, projected and 0 or 0.75)
+        GameTooltip:Show()
+    end)
+    bar:SetScript("OnLeave", GameTooltip_Hide)
+    frame:SetScript("OnUpdate", function(_, elapsed)
+        updateThrottle = updateThrottle + elapsed
+        if updateThrottle >= 1 then
+            updateThrottle = 0
+            ns.UpdateSeasonVisuals()
+        end
+    end)
+
+    return frame
 end
 
-local function cleanDatabase(db)
-    if not db.characters then
-        db.characters = {}
+function ns.UpdateSeasonVisuals()
+    if not frame then
+        return
+    end
+
+    local startTimestamp, endTimestamp = ns.GetSeasonWindow()
+    local label = ns.GetSeasonLabel()
+    local projected = ns.IsSeasonProjected()
+    if label and label ~= "" then
+        frame.title:SetText(string.format("%s Season", label))
+    else
+        frame.title:SetText("Season Progress")
+    end
+
+    if not startTimestamp or not endTimestamp or endTimestamp <= startTimestamp then
+        frame.bar:SetValue(0)
         return
     end
 
     local now = time()
-    for key, data in pairs(db.characters) do
-        if type(data) ~= "table" then
-            db.characters[key] = nil
-        elseif not data.version or data.version ~= CURRENT_VERSION then
-            db.characters[key] = nil
-        elseif not data.timestamp or (now - data.timestamp) > STALE_DATA_SECONDS then
-            db.characters[key] = nil
-        end
-    end
+    local duration = endTimestamp - startTimestamp
+    local elapsed = now - startTimestamp
+    local percent = math.min(math.max(elapsed / duration, 0), 1)
+
+    frame.bar:SetValue(percent)
+
+    local color = projected and PROJECTED_COLOR or CONFIRMED_COLOR
+    frame.bar:SetStatusBarColor(color[1], color[2], color[3])
+
+    -- no text updates; hover tooltip conveys exact dates
 end
 
-local function initDatabase()
-    if not PvPTrackerDB then
-        PvPTrackerDB = {}
-    end
-
-    PvPTrackerDB.version = CURRENT_VERSION
-    PvPTrackerDB.characters = PvPTrackerDB.characters or {}
-
-    cleanDatabase(PvPTrackerDB)
-
-    return PvPTrackerDB
-end
-
-local function characterKey()
-    local name = UnitName("player")
-    local realm = GetRealmName()
-    if not name or not realm then
-        return nil
-    end
-    return name .. "-" .. realm
-end
-
-local function classColorString(classFile)
-    local colorInfo = classFile and RAID_CLASS_COLORS[classFile]
-    return colorInfo and colorInfo.colorStr or "FFFFFFFF"
-end
-
-local function shortRealmName(realm)
-    if not realm or realm == "" then
-        return ""
-    end
-    return realm:sub(1, 5)
-end
-
-local function updateSoloAggregates(record)
-    if not record then
+function ns.AttachToConquestFrame()
+    local f = EnsureFrame()
+    if not f or not ConquestJoinButton then
         return
     end
 
-    local bestRating = 0
-    local bestTier
-    local bestSpecIcon
-
-    if record.soloRatings then
-        for _, entry in pairs(record.soloRatings) do
-            local rating = entry.rating or 0
-            if rating > bestRating then
-                bestRating = rating
-                bestTier = entry.tierIconID
-                bestSpecIcon = entry.specIcon
+    if not f._hooked and ConquestFrame then
+        ConquestFrame:HookScript("OnShow", function()
+            ns.AttachToConquestFrame()
+            f:Show()
+            ns.UpdateSeasonVisuals()
+        end)
+        ConquestFrame:HookScript("OnHide", function()
+            if SeasonProgressFrame then
+                SeasonProgressFrame:Hide()
             end
-        end
+        end)
+        f._hooked = true
     end
 
-    record.ratingSolo = bestRating
-    record.tierIconIDSolo = bestTier
-    record.bestSoloSpecIcon = bestSpecIcon
-end
+    f:ClearAllPoints()
+    -- Anchor whole widget 300px to the right of the Conquest Join button
+    f:SetPoint("CENTER", ConquestJoinButton, "CENTER", 278, 0)
+    f:SetPoint("CENTER", ConquestJoinButton, "CENTER", 278, -12)
 
-local db
-local playerKey
-
-local function debugPrint(...)
-    if not DEBUG_LOGGING then
-        return
-    end
-    local prefix = "|cff33ff99PvP Tracker|r"
-    print(prefix, ...)
-end
-
-local function ensureRecord()
-    if not db then
-        debugPrint("ensureRecord aborted: database not ready")
-        return nil
-    end
-
-    playerKey = playerKey or characterKey()
-    if not playerKey then
-        debugPrint("ensureRecord aborted: missing player key")
-        return nil
-    end
-
-    local record = db.characters[playerKey]
-    if not record then
-        record = {}
-        db.characters[playerKey] = record
-        debugPrint("Created new record", playerKey)
+    if ConquestFrame and ConquestFrame:IsShown() then
+        f:Show()
+        ns.UpdateSeasonVisuals()
     else
-        debugPrint("Updating record", playerKey)
-    end
-
-    local name = UnitName("player") or "Unknown"
-    local realm = GetRealmName() or ""
-    local _, classFile = UnitClass("player")
-    local specID = GetSpecialization()
-    local specIcon
-    if specID then
-        local _, _, _, icon = GetSpecializationInfo(specID)
-        specIcon = icon
-    end
-
-    record.name = name
-    record.realm = realm
-    record.classFile = classFile
-    record.classColor = classColorString(classFile)
-    record.specID = specID
-    record.specIcon = specIcon
-    record.key = playerKey
-    record.timestamp = time()
-    record.version = CURRENT_VERSION
-    record.weeklyreset = time() + (C_DateAndTime.GetSecondsUntilWeeklyReset() or 0)
-
-    record.soloRatings = record.soloRatings or {}
-
-    if record.ratingSolo and (not next(record.soloRatings)) then
-        local entryKey = record.SpecIDSolo or specID or "default"
-        record.soloRatings[entryKey] = {
-            rating = record.ratingSolo,
-            tierIconID = record.tierIconIDSolo,
-            specIndex = entryKey,
-            specIcon = record.specIcon,
-        }
-    end
-
-    updateSoloAggregates(record)
-    debugPrint("Record updated", playerKey, "specID:", specID, "class:", classFile)
-    return record
-end
-
-local function formatCharacterName(record)
-    if not record.name then
-        return "Unknown"
-    end
-
-    local color = record.classColor or "FFFFFFFF"
-    local displayName = record.name
-    if record.realm and record.realm ~= GetRealmName() then
-        local realmShort = shortRealmName(record.realm)
-        if realmShort ~= "" then
-            displayName = displayName .. "-" .. realmShort
-        end
-    end
-
-    if record.specIcon then
-        return ("|c%s|T%d:14|t %s|r"):format(color, record.specIcon, displayName)
-    end
-
-    return ("|c%s%s|r"):format(color, displayName)
-end
-
-local function formatRating(record, columnInfo)
-    local rating = record[columnInfo.key]
-    local iconID = record[columnInfo.iconField]
-    if not rating or rating <= 0 then
-        return "-"
-    end
-
-    if columnInfo.key == "ratingSolo" then
-        return tostring(rating)
-    end
-
-    if iconID and iconID > 0 then
-        return ("|T%d:16|t %d"):format(iconID, rating)
-    end
-
-    return tostring(rating)
-end
-
-local function formatSoloRatings(record)
-    if not record.soloRatings or not next(record.soloRatings) then
-        return "-"
-    end
-
-    local entries = {}
-    for specIndex, info in pairs(record.soloRatings) do
-        table.insert(entries, {
-            specIndex = specIndex,
-            rating = info.rating or 0,
-            tierIconID = info.tierIconID,
-            specIcon = info.specIcon,
-        })
-    end
-
-    table.sort(entries, function(a, b)
-        if a.rating ~= b.rating then
-            return a.rating > b.rating
-        end
-        return (a.specIndex or 0) < (b.specIndex or 0)
-    end)
-
-    local parts = {}
-    for _, value in ipairs(entries) do
-        local specIcon = value.specIcon or 0
-        local tierIcon = value.tierIconID or 0
-        local rating = value.rating or 0
-        local specTexture = specIcon > 0 and ("|T%d:16|t"):format(specIcon) or ""
-        local tierTexture = tierIcon > 0 and ("|T%d:16|t"):format(tierIcon) or ""
-        table.insert(parts, specTexture .. tierTexture .. string.format(" %d", rating))
-    end
-
-    return table.concat(parts, "   ")
-end
-
-local function formatConquest(record, iconID)
-    local owned = record.conquestOwned or 0
-    local earned = record.conquestEarned or 0
-    local maxQty = record.maxConquest or 0
-
-    if maxQty > 0 then
-        local remaining = math.max(maxQty - earned, 0)
-        if remaining > 0 then
-            return ("|T%d:14|t %d (%d left)"):format(iconID or 0, owned, remaining)
-        end
-    end
-
-    if iconID and iconID > 0 then
-        return ("|T%d:14|t %d"):format(iconID, owned)
-    end
-
-    return tostring(owned)
-end
-
-local function attachDrag(frame)
-    frame:SetClampedToScreen(true)
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(self)
-        self:StartMoving()
-    end)
-    frame:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-    end)
-end
-
-function tracker:CreateUI()
-    if self.frame then
-        return
-    end
-
-    local frame = CreateFrame("Frame", "PvPTrackerFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(720, 420)
-    frame:SetPoint("CENTER")
-    frame:Hide()
-    attachDrag(frame)
-
-    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.title:SetPoint("CENTER", frame.TitleBg, "CENTER", 0, 0)
-    frame.title:SetText("PvP Tracker")
-
-    local header = CreateFrame("Frame", nil, frame)
-    header:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -32)
-    header:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -32)
-    header:SetHeight(18)
-
-    header.labels = {}
-    for index, columnInfo in ipairs(columns) do
-        local label = header:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        label:SetPoint("LEFT", header, "LEFT", columnOffsets[index], 0)
-        label:SetWidth(columnInfo.width)
-        label:SetJustifyH(columnInfo.justify or "LEFT")
-        label:SetText(columnInfo.label)
-        header.labels[index] = label
-    end
-
-    local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -6)
-    scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 10)
-
-    local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, 0)
-    scrollChild:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", -20, 0)
-    scrollChild:SetHeight(scrollFrame:GetHeight())
-    scrollChild:SetWidth(scrollFrame:GetWidth())
-
-    scrollFrame:SetScrollChild(scrollChild)
-
-    self.frame = frame
-    self.scrollFrame = scrollFrame
-    self.scrollChild = scrollChild
-    self.rows = {}
-    self.sortedRecords = {}
-
-    local footer = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 12, 12)
-    footer:SetText("Total Conquest: 0")
-    self.totalConquestText = footer
-
-    scrollFrame:HookScript("OnSizeChanged", function(_, width, height)
-        scrollChild:SetWidth(width or scrollChild:GetWidth())
-        local rowCount = tracker.sortedRecords and #tracker.sortedRecords or 0
-        scrollChild:SetHeight(math.max(height or scrollChild:GetHeight(), rowCount * ROW_HEIGHT))
-        tracker:RefreshUI(true)
-    end)
-
-    frame:SetScript("OnShow", function()
-        tracker:RefreshUI(true)
-    end)
-end
-
-function tracker:AcquireRow(index)
-    local row = self.rows[index]
-    if row then
-        return row
-    end
-
-    row = CreateFrame("Frame", nil, self.scrollChild)
-    row:SetHeight(ROW_HEIGHT)
-
-    local textWidgets = {}
-    for colIndex, columnInfo in ipairs(columns) do
-        local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        text:SetJustifyH(columnInfo.justify or "LEFT")
-        text:SetPoint("LEFT", row, "LEFT", columnOffsets[colIndex], 0)
-        text:SetWidth(columnInfo.width)
-        textWidgets[colIndex] = text
-    end
-
-    self.rows[index] = row
-    row.textWidgets = textWidgets
-
-    return row
-end
-
-local function validRecord(data)
-    if type(data) ~= "table" then
-        debugPrint("Record invalid: not a table")
-        return false
-    end
-    if not data.name or not data.realm then
-        debugPrint("Record invalid: missing name/realm")
-        return false
-    end
-    if data.version ~= CURRENT_VERSION then
-        debugPrint("Record invalid: version mismatch")
-        return false
-    end
-    if data.timestamp and (time() - data.timestamp) > STALE_DATA_SECONDS then
-        debugPrint("Record invalid: stale timestamp")
-        return false
-    end
-    return true
-end
-
-function tracker:GetSortedRecords()
-    if not db or not db.characters then
-        debugPrint("GetSortedRecords: database not ready")
-        return {}
-    end
-
-    ensureRecord()
-
-    wipe(self.sortedRecords)
-    for _, data in pairs(db.characters) do
-        if validRecord(data) then
-            table.insert(self.sortedRecords, data)
-        else
-            debugPrint("Skipping invalid record during sort")
-        end
-    end
-
-    table.sort(self.sortedRecords, function(a, b)
-        local aRating = a.ratingSolo or 0
-        local bRating = b.ratingSolo or 0
-        if aRating ~= bRating then
-            return aRating > bRating
-        end
-        return (a.name or "") < (b.name or "")
-    end)
-
-    return self.sortedRecords
-end
-
-function tracker:PopulateRow(row, data)
-    local iconID = self.conquestIcon or 0
-    for index, columnInfo in ipairs(columns) do
-        local textWidget = row.textWidgets[index]
-        if columnInfo.key == "name" then
-            textWidget:SetJustifyH(columnInfo.justify or "LEFT")
-            textWidget:SetText(formatCharacterName(data))
-        elseif columnInfo.key == "conquestOwned" then
-            textWidget:SetJustifyH(columnInfo.justify or "CENTER")
-            textWidget:SetText(formatConquest(data, iconID))
-        elseif columnInfo.key == "ratingSolo" then
-            textWidget:SetJustifyH(columnInfo.justify or "LEFT")
-            textWidget:SetText(formatSoloRatings(data))
-        else
-            textWidget:SetJustifyH(columnInfo.justify or "CENTER")
-            textWidget:SetText(formatRating(data, columnInfo))
-        end
+        f:Hide()
     end
 end
-
-function tracker:RefreshUI(force)
-    if not self.frame or (not force and not self.dirty) then
-        return
-    end
-
-    local records = self:GetSortedRecords()
-    debugPrint("RefreshUI - records to draw:", #records, "dirty:", self.dirty, "force:", force)
-    local scrollChildHeight = math.max(#records * ROW_HEIGHT, self.scrollFrame:GetHeight())
-    self.scrollChild:SetHeight(scrollChildHeight)
-
-    local totalConq = 0
-    for index, data in ipairs(records) do
-        local row = self:AcquireRow(index)
-        row:Show()
-        row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT", 0, -(index - 1) * ROW_HEIGHT)
-        row:SetPoint("TOPRIGHT", self.scrollChild, "TOPRIGHT", 0, -(index - 1) * ROW_HEIGHT)
-        self:PopulateRow(row, data)
-        totalConq = totalConq + (data.conquestOwned or 0)
-    end
-
-    for index = #records + 1, #self.rows do
-        self.rows[index]:Hide()
-    end
-
-    if self.totalConquestText then
-        self.totalConquestText:SetText(string.format("Total Conquest: %d", totalConq))
-    end
-
-    self.dirty = false
-end
-
-function tracker:MarkDirty()
-    self.dirty = true
-    debugPrint("MarkDirty called - frame shown:", self.frame and self.frame:IsShown())
-    if self.frame and self.frame:IsShown() then
-        self:RefreshUI(true)
-    end
-end
-
-function tracker:UpdateProgress()
-    local record = ensureRecord()
-    if not record then
-        debugPrint("UpdateProgress aborted, missing record")
-        return
-    end
-
-    local currencyInfo = safeCurrencyInfo(CONQUEST_CURRENCY_ID)
-    record.conquestOwned = currencyInfo.quantity or 0
-    record.conquestEarned = currencyInfo.totalEarned or 0
-    record.maxConquest = currencyInfo.maxQuantity or 0
-    record.timestamp = time()
-    record.conquestIcon = currencyInfo.iconFileID
-    record.weeklyreset = time() + (C_DateAndTime.GetSecondsUntilWeeklyReset() or 0)
-
-    self.conquestIcon = currencyInfo.iconFileID
-    debugPrint("UpdateProgress: owned", record.conquestOwned, "earned", record.conquestEarned, "max", record.maxConquest)
-    self:MarkDirty()
-end
-
-function tracker:UpdateRatings()
-    local record = ensureRecord()
-    if not record then
-        debugPrint("UpdateRatings aborted, missing record")
-        return
-    end
-
-    for _, bracket in ipairs(trackedBrackets) do
-        local rating, _, _, _, _, _, _, _, _, tier = GetPersonalRatedInfo(bracket.bracket)
-        local tierIcon
-        if tier then
-            local tierInfo = C_PvP.GetPvpTierInfo(tier)
-            tierIcon = tierInfo and tierInfo.tierIconID or nil
-        end
-
-        if bracket.perSpec then
-            local specIndex = GetSpecialization()
-            if specIndex then
-                local _, _, _, specIcon = GetSpecializationInfo(specIndex)
-                record.soloRatings = record.soloRatings or {}
-                record.soloRatings[specIndex] = {
-                    rating = rating or 0,
-                    tierIconID = tierIcon,
-                    specIndex = specIndex,
-                    specIcon = specIcon,
-                }
-                updateSoloAggregates(record)
-            end
-        else
-            record[bracket.key] = rating or 0
-            record[bracket.iconField] = tierIcon
-        end
-
-        debugPrint("UpdateRatings:", bracket.label, "rating", rating, "tier", tierIcon)
-    end
-
-    record.timestamp = time()
-    self:MarkDirty()
-end
-
-function tracker:RefreshAllData()
-    debugPrint("RefreshAllData invoked")
-    self:UpdateProgress()
-    self:UpdateRatings()
-end
-
-function tracker:Toggle()
-    self:CreateUI()
-    if self.frame:IsShown() then
-        self.frame:Hide()
-    else
-        self.frame:Show()
-    end
-end
-
-local function handleSlash()
-    debugPrint("Slash command executed")
-    tracker:Toggle()
-end
-
-SLASH_PVPTRACKER1 = "/pvptracker"
-SLASH_PVPTRACKER2 = "/pvptrack"
-SlashCmdList.PVPTRACKER = handleSlash
-
-tracker:SetScript("OnEvent", function(self, event, ...)
-    if event == "ADDON_LOADED" then
-        local addonName = ...
-        if addonName ~= ADDON_NAME then
-            return
-        end
-
-        debugPrint("ADDON_LOADED for", addonName)
-        db = initDatabase()
-        ensureRecord()
-        print("|cff33ff99PvP Tracker|r loaded. Type /pvptracker to open the tracker window.")
-        self:CreateUI()
-        self:RegisterEvent("PLAYER_LOGIN")
-        self:RegisterEvent("PLAYER_LOGOUT")
-        self:RegisterEvent("PVP_RATED_STATS_UPDATE")
-        self:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
-        self:RegisterEvent("WEEKLY_REWARDS_UPDATE")
-        self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-
-    elseif event == "PLAYER_LOGIN" then
-        debugPrint("PLAYER_LOGIN received")
-        tracker:RefreshAllData()
-
-    elseif event == "PLAYER_LOGOUT" then
-        debugPrint("PLAYER_LOGOUT received")
-        tracker:UpdateProgress()
-        tracker:UpdateRatings()
-
-    elseif event == "PVP_RATED_STATS_UPDATE" then
-        debugPrint("PVP_RATED_STATS_UPDATE event")
-        tracker:UpdateRatings()
-
-    elseif event == "CURRENCY_DISPLAY_UPDATE" then
-        local currencyID = ...
-        debugPrint("CURRENCY_DISPLAY_UPDATE", currencyID)
-        if currencyID == nil or currencyID == CONQUEST_CURRENCY_ID then
-            tracker:UpdateProgress()
-        end
-
-    elseif event == "WEEKLY_REWARDS_UPDATE" then
-        debugPrint("WEEKLY_REWARDS_UPDATE event")
-        tracker:UpdateProgress()
-
-    elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
-        local unit = ...
-        if unit == "player" then
-            debugPrint("PLAYER_SPECIALIZATION_CHANGED")
-            ensureRecord()
-            tracker:UpdateRatings()
-        end
-    end
-end)
-
-tracker:RegisterEvent("ADDON_LOADED")

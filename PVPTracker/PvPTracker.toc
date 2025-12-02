@@ -1,0 +1,8 @@
+## Interface: 110205
+## Title: PvP Tracker (Account-Wide)
+## Notes: Tracks PvP ratings and conquest for every character on the account.
+## Author: Codex
+## Version: 1.0.0
+## SavedVariables: PvPTrackerDB
+
+PvPTracker.lua

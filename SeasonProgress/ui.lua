@@ -3,6 +3,9 @@ local addonName, ns = ...
 local frame
 local updateThrottle = 0
 
+local CONFIRMED_COLOR = { 0.0, 0.45, 0.1 }
+local PROJECTED_COLOR = { 0.75, 0.55, 0.0 }
+
 local function FormatDuration(seconds)
     if seconds <= 0 then
         return "0"
@@ -33,7 +36,7 @@ local function EnsureFrame()
     bar:SetSize(160, 5)
     bar:SetPoint("TOP", title, "BOTTOM", 0, -10)
     bar:SetMinMaxValues(0, 1)
-    bar:SetStatusBarColor(0.0, 0.45, 0.1)
+    bar:SetStatusBarColor(CONFIRMED_COLOR[1], CONFIRMED_COLOR[2], CONFIRMED_COLOR[3])
     frame.bar = bar
 
     local bg = bar:CreateTexture(nil, "BACKGROUND")
@@ -53,9 +56,11 @@ local function EnsureFrame()
         if not startTimestamp or not endTimestamp then
             return
         end
+        local projected = ns.IsSeasonProjected()
         GameTooltip:SetOwner(bar, "ANCHOR_TOP")
         GameTooltip:AddLine("Season Window", 1, 0.82, 0)
-        GameTooltip:AddLine(date("%m-%d-%Y", startTimestamp) .. " → " .. date("%m-%d-%Y", endTimestamp), 1, 1, 1)
+        GameTooltip:AddLine(date("%m-%d-%Y", startTimestamp) .. " -> " .. date("%m-%d-%Y", endTimestamp), 1, 1, 1)
+        GameTooltip:AddLine(projected and "Projected" or "Confirmed", projected and 1 or 0.75, projected and 0.82 or 1, projected and 0 or 0.75)
         GameTooltip:Show()
     end)
     bar:SetScript("OnLeave", GameTooltip_Hide)
@@ -77,6 +82,7 @@ function ns.UpdateSeasonVisuals()
 
     local startTimestamp, endTimestamp = ns.GetSeasonWindow()
     local label = ns.GetSeasonLabel()
+    local projected = ns.IsSeasonProjected()
     if label and label ~= "" then
         frame.title:SetText(string.format("%s Season", label))
     else
@@ -94,6 +100,9 @@ function ns.UpdateSeasonVisuals()
     local percent = math.min(math.max(elapsed / duration, 0), 1)
 
     frame.bar:SetValue(percent)
+
+    local color = projected and PROJECTED_COLOR or CONFIRMED_COLOR
+    frame.bar:SetStatusBarColor(color[1], color[2], color[3])
 
     -- no text updates; hover tooltip conveys exact dates
 end

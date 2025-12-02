@@ -6,8 +6,10 @@ local CONQUEST_CURRENCY_ID = 1602
 local DATA_DELAY_SECONDS = 8
 local STALE_DATA_SECONDS = 30 * 24 * 60 * 60
 local ROW_HEIGHT = 20
-local COLUMN_SPACING = 12
+local COLUMN_PADDING = 10
 local DEBUG_LOGGING = false
+
+local GetDungeonScoreRarityColor = C_ChallengeMode and C_ChallengeMode.GetDungeonScoreRarityColor
 
 local trackedBrackets = {
     { key = "ratingSolo", label = "Solo", bracket = 7, iconField = "tierIconIDSolo", perSpec = true },
@@ -16,15 +18,15 @@ local trackedBrackets = {
 }
 
 local columns = {
-    { key = "name", label = "Character", width = 150, justify = "LEFT" },
+    { key = "name", label = "Character", width = 170, justify = "LEFT" },
 }
 
 for _, bracket in ipairs(trackedBrackets) do
     table.insert(columns, {
         key = bracket.key,
         label = bracket.label,
-        width = bracket.key == "ratingSolo" and 210 or 70,
-        justify = "CENTER",
+        width = bracket.key == "ratingSolo" and 260 or 90,
+        justify = bracket.key == "ratingSolo" and "LEFT" or "CENTER",
         iconField = bracket.iconField,
     })
 end
@@ -32,18 +34,27 @@ end
 table.insert(columns, {
     key = "conquestOwned",
     label = "Conquest",
-    width = 120,
+    width = 140,
     justify = "CENTER",
 })
 
 local columnOffsets = {}
+local BASE_TOTAL_COLUMN_WIDTH = 0
 do
     local offset = 0
     for index, info in ipairs(columns) do
         columnOffsets[index] = offset
-        offset = offset + info.width + COLUMN_SPACING
+        offset = offset + info.width + COLUMN_PADDING
     end
+    BASE_TOTAL_COLUMN_WIDTH = math.max(offset - COLUMN_PADDING, 0)
 end
+
+local sortOptions = {
+    { key = "ratingSolo", label = "Solo Shuffle" },
+    { key = "rating3v3", label = "3v3" },
+    { key = "rating2v2", label = "2v2" },
+    { key = "conquestOwned", label = "Conquest" },
+}
 
 local function safeCurrencyInfo(currencyID)
     local info = C_CurrencyInfo.GetCurrencyInfo(currencyID)
@@ -83,6 +94,7 @@ local function initDatabase()
 
     PvPTrackerDB.version = CURRENT_VERSION
     PvPTrackerDB.characters = PvPTrackerDB.characters or {}
+    PvPTrackerDB.sortKey = PvPTrackerDB.sortKey or "ratingSolo"
 
     cleanDatabase(PvPTrackerDB)
 
@@ -110,6 +122,29 @@ local function shortRealmName(realm)
     return realm:sub(1, 5)
 end
 
+local function formatRatingColored(rating)
+    rating = rating or 0
+    if rating <= 0 then
+        return "-"
+    end
+
+    if rating >= 2700 then
+        return ("|cff00ccff%d|r"):format(rating)
+    end
+
+    if GetDungeonScoreRarityColor then
+        local color = GetDungeonScoreRarityColor(rating)
+        if color then
+            return color:WrapTextInColorCode(("%d"):format(rating))
+        end
+    end
+
+    return tostring(rating)
+end
+
+local db
+local playerKey
+
 local function updateSoloAggregates(record)
     if not record then
         return
@@ -135,8 +170,63 @@ local function updateSoloAggregates(record)
     record.bestSoloSpecIcon = bestSpecIcon
 end
 
-local db
-local playerKey
+function tracker:GetColumnText(data, columnInfo)
+    if columnInfo.key == "name" then
+        return formatCharacterName(data)
+    elseif columnInfo.key == "conquestOwned" then
+        return formatConquest(data, self.conquestIcon or 0)
+    elseif columnInfo.key == "ratingSolo" then
+        return formatSoloRatings(data)
+    else
+        return formatRating(data, columnInfo)
+    end
+end
+
+function tracker:ApplyRowLayout(row)
+    if not row or not row.textWidgets then
+        return
+    end
+    for index, text in ipairs(row.textWidgets) do
+        local offset = columnOffsets[index] or 0
+        local width = columns[index].width
+        text:ClearAllPoints()
+        text:SetPoint("LEFT", row, "LEFT", offset, 0)
+        text:SetWidth(width)
+    end
+end
+
+function tracker:UpdateAllRowsLayout()
+    if not self.rows then
+        return
+    end
+    for _, row in ipairs(self.rows) do
+        self:ApplyRowLayout(row)
+    end
+end
+
+function tracker:InitializeColumnLayout()
+    self.totalColumnWidth = BASE_TOTAL_COLUMN_WIDTH
+
+    if self.headerLabels then
+        for index, label in ipairs(self.headerLabels) do
+            local offset = columnOffsets[index] or 0
+            label:ClearAllPoints()
+            label:SetPoint("BOTTOMLEFT", self.header, "BOTTOMLEFT", offset, 4)
+            label:SetWidth(columns[index].width)
+        end
+    end
+
+    if self.scrollChild then
+        self.scrollChild:SetWidth(self.totalColumnWidth)
+    end
+
+    if self.frame then
+        local minWidth = 720
+        self.frame:SetWidth(math.max(minWidth, self.totalColumnWidth + 60))
+    end
+
+    self:UpdateAllRowsLayout()
+end
 
 local function debugPrint(...)
     if not DEBUG_LOGGING then
@@ -228,20 +318,10 @@ end
 
 local function formatRating(record, columnInfo)
     local rating = record[columnInfo.key]
-    local iconID = record[columnInfo.iconField]
-    if not rating or rating <= 0 then
-        return "-"
-    end
-
     if columnInfo.key == "ratingSolo" then
-        return tostring(rating)
+        return formatSoloRatings(record)
     end
-
-    if iconID and iconID > 0 then
-        return ("|T%d:16|t %d"):format(iconID, rating)
-    end
-
-    return tostring(rating)
+    return formatRatingColored(rating)
 end
 
 local function formatSoloRatings(record)
@@ -269,11 +349,9 @@ local function formatSoloRatings(record)
     local parts = {}
     for _, value in ipairs(entries) do
         local specIcon = value.specIcon or 0
-        local tierIcon = value.tierIconID or 0
-        local rating = value.rating or 0
-        local specTexture = specIcon > 0 and ("|T%d:16|t"):format(specIcon) or ""
-        local tierTexture = tierIcon > 0 and ("|T%d:16|t"):format(tierIcon) or ""
-        table.insert(parts, specTexture .. tierTexture .. string.format(" %d", rating))
+        local ratingText = formatRatingColored(value.rating or 0)
+        local specTexture = specIcon > 0 and ("|T%d:16|t "):format(specIcon) or ""
+        table.insert(parts, specTexture .. ratingText)
     end
 
     return table.concat(parts, "   ")
@@ -329,17 +407,21 @@ function tracker:CreateUI()
     local header = CreateFrame("Frame", nil, frame)
     header:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -32)
     header:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -32)
-    header:SetHeight(18)
+    header:SetHeight(44)
 
-    header.labels = {}
+    self.header = header
+    self.headerLabels = {}
+
     for index, columnInfo in ipairs(columns) do
         local label = header:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        label:SetPoint("LEFT", header, "LEFT", columnOffsets[index], 0)
-        label:SetWidth(columnInfo.width)
         label:SetJustifyH(columnInfo.justify or "LEFT")
         label:SetText(columnInfo.label)
-        header.labels[index] = label
+        self.headerLabels[index] = label
     end
+
+    local dropdown = CreateFrame("Frame", "PvPTrackerSortDropdown", header, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("TOPRIGHT", header, "TOPRIGHT", -4, -4)
+    self.sortDropdown = dropdown
 
     local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -6)
@@ -364,8 +446,11 @@ function tracker:CreateUI()
     footer:SetText("Total Conquest: 0")
     self.totalConquestText = footer
 
-    scrollFrame:HookScript("OnSizeChanged", function(_, width, height)
-        scrollChild:SetWidth(width or scrollChild:GetWidth())
+    scrollFrame:HookScript("OnSizeChanged", function(_, _, height)
+        if tracker.totalColumnWidth then
+            local width = math.max(tracker.totalColumnWidth, tracker.scrollFrame:GetWidth())
+            scrollChild:SetWidth(width)
+        end
         local rowCount = tracker.sortedRecords and #tracker.sortedRecords or 0
         scrollChild:SetHeight(math.max(height or scrollChild:GetHeight(), rowCount * ROW_HEIGHT))
         tracker:RefreshUI(true)
@@ -374,29 +459,34 @@ function tracker:CreateUI()
     frame:SetScript("OnShow", function()
         tracker:RefreshUI(true)
     end)
+
+    self:InitializeColumnLayout()
+    self:InitializeSortDropdown()
+end
+
+local function ensureRowWidgets(row)
+    row.textWidgets = row.textWidgets or {}
+    for colIndex, columnInfo in ipairs(columns) do
+        if not row.textWidgets[colIndex] then
+            local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            text:SetJustifyH(columnInfo.justify or "LEFT")
+            row.textWidgets[colIndex] = text
+        end
+    end
 end
 
 function tracker:AcquireRow(index)
     local row = self.rows[index]
-    if row then
-        return row
+    debugPrint("AcquireRow call", index, row and "existing" or "new")
+    if not row then
+        row = CreateFrame("Frame", nil, self.scrollChild)
+        row:SetHeight(ROW_HEIGHT)
+        self.rows[index] = row
+        debugPrint("AcquireRow created", index)
     end
 
-    row = CreateFrame("Frame", nil, self.scrollChild)
-    row:SetHeight(ROW_HEIGHT)
-
-    local textWidgets = {}
-    for colIndex, columnInfo in ipairs(columns) do
-        local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        text:SetJustifyH(columnInfo.justify or "LEFT")
-        text:SetPoint("LEFT", row, "LEFT", columnOffsets[colIndex], 0)
-        text:SetWidth(columnInfo.width)
-        textWidgets[colIndex] = text
-    end
-
-    self.rows[index] = row
-    row.textWidgets = textWidgets
-
+    ensureRowWidgets(row)
+    self:ApplyRowLayout(row)
     return row
 end
 
@@ -420,6 +510,14 @@ local function validRecord(data)
     return true
 end
 
+function tracker:GetSortValue(record)
+    local key = self.sortKey or "ratingSolo"
+    if key == "conquestOwned" then
+        return record.conquestOwned or 0
+    end
+    return record[key] or 0
+end
+
 function tracker:GetSortedRecords()
     if not db or not db.characters then
         debugPrint("GetSortedRecords: database not ready")
@@ -436,12 +534,19 @@ function tracker:GetSortedRecords()
             debugPrint("Skipping invalid record during sort")
         end
     end
+    debugPrint("SortedRecords count", #self.sortedRecords)
+    if DEBUG_LOGGING then
+        for _, rec in ipairs(self.sortedRecords) do
+            debugPrint("Record:", rec.name, rec.realm, rec.conquestOwned, rec.ratingSolo, rec.rating2v2, rec.rating3v3)
+        end
+    end
 
+    local selfRef = self
     table.sort(self.sortedRecords, function(a, b)
-        local aRating = a.ratingSolo or 0
-        local bRating = b.ratingSolo or 0
-        if aRating ~= bRating then
-            return aRating > bRating
+        local aVal = selfRef:GetSortValue(a)
+        local bVal = selfRef:GetSortValue(b)
+        if aVal ~= bVal then
+            return aVal > bVal
         end
         return (a.name or "") < (b.name or "")
     end)
@@ -450,22 +555,13 @@ function tracker:GetSortedRecords()
 end
 
 function tracker:PopulateRow(row, data)
-    local iconID = self.conquestIcon or 0
+    debugPrint("PopulateRow start", data.name)
     for index, columnInfo in ipairs(columns) do
         local textWidget = row.textWidgets[index]
-        if columnInfo.key == "name" then
-            textWidget:SetJustifyH(columnInfo.justify or "LEFT")
-            textWidget:SetText(formatCharacterName(data))
-        elseif columnInfo.key == "conquestOwned" then
-            textWidget:SetJustifyH(columnInfo.justify or "CENTER")
-            textWidget:SetText(formatConquest(data, iconID))
-        elseif columnInfo.key == "ratingSolo" then
-            textWidget:SetJustifyH(columnInfo.justify or "LEFT")
-            textWidget:SetText(formatSoloRatings(data))
-        else
-            textWidget:SetJustifyH(columnInfo.justify or "CENTER")
-            textWidget:SetText(formatRating(data, columnInfo))
-        end
+        textWidget:SetJustifyH(columnInfo.justify or "LEFT")
+        local val = self:GetColumnText(data, columnInfo)
+        textWidget:SetText(val)
+        debugPrint("PopulateRow", index, columnInfo.key, val)
     end
 end
 
@@ -476,11 +572,13 @@ function tracker:RefreshUI(force)
 
     local records = self:GetSortedRecords()
     debugPrint("RefreshUI - records to draw:", #records, "dirty:", self.dirty, "force:", force)
+    self:InitializeColumnLayout()
     local scrollChildHeight = math.max(#records * ROW_HEIGHT, self.scrollFrame:GetHeight())
     self.scrollChild:SetHeight(scrollChildHeight)
 
     local totalConq = 0
     for index, data in ipairs(records) do
+        debugPrint("Render row", index, data.name)
         local row = self:AcquireRow(index)
         row:Show()
         row:ClearAllPoints()
@@ -507,6 +605,48 @@ function tracker:MarkDirty()
     if self.frame and self.frame:IsShown() then
         self:RefreshUI(true)
     end
+end
+
+function tracker:GetSortLabel(key)
+    for _, option in ipairs(sortOptions) do
+        if option.key == key then
+            return option.label
+        end
+    end
+    return "Sort"
+end
+
+function tracker:SetSortKey(key)
+    self.sortKey = key
+    if PvPTrackerDB then
+        PvPTrackerDB.sortKey = key
+    end
+    if self.sortDropdown then
+        UIDropDownMenu_SetText(self.sortDropdown, self:GetSortLabel(key))
+    end
+    self:MarkDirty()
+end
+
+function tracker:InitializeSortDropdown()
+    if not self.sortDropdown then
+        return
+    end
+    UIDropDownMenu_SetWidth(self.sortDropdown, 150)
+    UIDropDownMenu_Initialize(self.sortDropdown, function(_, level)
+        if not level then
+            return
+        end
+        for _, option in ipairs(sortOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = option.label
+            info.func = function()
+                tracker:SetSortKey(option.key)
+            end
+            info.checked = (self.sortKey == option.key)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+    UIDropDownMenu_SetText(self.sortDropdown, self:GetSortLabel(self.sortKey or "ratingSolo"))
 end
 
 function tracker:UpdateProgress()
@@ -603,6 +743,7 @@ tracker:SetScript("OnEvent", function(self, event, ...)
         debugPrint("ADDON_LOADED for", addonName)
         db = initDatabase()
         ensureRecord()
+        self.sortKey = PvPTrackerDB.sortKey or "ratingSolo"
         print("|cff33ff99PvP Tracker|r loaded. Type /pvptracker to open the tracker window.")
         self:CreateUI()
         self:RegisterEvent("PLAYER_LOGIN")

@@ -13,6 +13,14 @@ driver:RegisterEvent("PLAYER_ENTERING_WORLD")
 driver:RegisterEvent("TRANSMOG_COLLECTION_SOURCE_ADDED")
 driver:RegisterEvent("PVP_RATED_STATS_UPDATE")
 
+local function IsBlizzardPVPLoaded()
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        return C_AddOns.IsAddOnLoaded("Blizzard_PVPUI")
+    elseif IsAddOnLoaded then
+        return IsAddOnLoaded("Blizzard_PVPUI")
+    end
+end
+
 local function RefreshCollections()
     if UpdateSets() then
         UpdateDisplay()
@@ -26,7 +34,7 @@ driver:SetScript("OnEvent", function(_, event, arg1)
             RefreshPlayerClass()
             RefreshCollections()
 
-            if IsAddOnLoaded("Blizzard_PVPUI") then
+            if IsBlizzardPVPLoaded() then
                 TryAttachToConquestFrame()
             end
         elseif arg1 == "Blizzard_PVPUI" then
@@ -37,7 +45,7 @@ driver:SetScript("OnEvent", function(_, event, arg1)
         RefreshPlayerClass()
         RefreshCollections()
 
-        if IsAddOnLoaded("Blizzard_PVPUI") then
+        if IsBlizzardPVPLoaded() then
             TryAttachToConquestFrame()
         end
 

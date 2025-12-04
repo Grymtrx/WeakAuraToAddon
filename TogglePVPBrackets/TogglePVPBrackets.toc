@@ -6,5 +6,7 @@
 ## Version: 1.0.0
 ## IconTexture: 
 ## X-License: MIT
+## SavedVariables: TogglePVPBracketsDB
 
 core.lua
+ingroup.lua

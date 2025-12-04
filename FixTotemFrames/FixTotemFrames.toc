@@ -1,0 +1,8 @@
+## Interface: 110207
+## Title: Fix TotemFrames
+## Notes: Recreates TotemFrameTotem buttons so macros for destroytotem work again.
+## Author: Greymatter (Grymtrx)
+## IconTexture: Interface\AddOns\FixTotemFrames\media\totem.tga
+## Version: 1.0.0
+
+FixTotemFrames.lua

@@ -1,0 +1,9 @@
+## Interface: 110207
+## Title: ArenaWinrate
+## Notes: Displays your rated arena win/loss and winrate
+## Author: Grymtrx
+## Version: 1.0
+
+core.lua
+ui.lua
+events.lua

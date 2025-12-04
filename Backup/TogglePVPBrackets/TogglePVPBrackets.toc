@@ -1,0 +1,10 @@
+## Interface: 110205
+## Title: Toggle PVP Brackets
+## Notes: Toggle specific PVP brackets visibility.
+## Author: Greymatter (Grymtrx)
+## IconTexture: Interface\AddOns\TogglePVPBrackets\media\icon.tga
+## Version: 1.0.0
+## IconTexture: 
+## X-License: MIT
+
+core.lua

@@ -122,6 +122,27 @@ local function shortRealmName(realm)
     return realm:sub(1, 5)
 end
 
+local function formatCharacterName(record)
+    if not record.name then
+        return "Unknown"
+    end
+
+    local color = record.classColor or "FFFFFFFF"
+    local displayName = record.name
+    if record.realm and record.realm ~= GetRealmName() then
+        local realmShort = shortRealmName(record.realm)
+        if realmShort ~= "" then
+            displayName = displayName .. "-" .. realmShort
+        end
+    end
+
+    if record.specIcon then
+        return ("|c%s|T%d:14|t %s|r"):format(color, record.specIcon, displayName)
+    end
+
+    return ("|c%s%s|r"):format(color, displayName)
+end
+
 local function formatRatingColored(rating)
     rating = rating or 0
     if rating <= 0 then
@@ -293,27 +314,6 @@ local function ensureRecord()
     updateSoloAggregates(record)
     debugPrint("Record updated", playerKey, "specID:", specID, "class:", classFile)
     return record
-end
-
-local function formatCharacterName(record)
-    if not record.name then
-        return "Unknown"
-    end
-
-    local color = record.classColor or "FFFFFFFF"
-    local displayName = record.name
-    if record.realm and record.realm ~= GetRealmName() then
-        local realmShort = shortRealmName(record.realm)
-        if realmShort ~= "" then
-            displayName = displayName .. "-" .. realmShort
-        end
-    end
-
-    if record.specIcon then
-        return ("|c%s|T%d:14|t %s|r"):format(color, record.specIcon, displayName)
-    end
-
-    return ("|c%s%s|r"):format(color, displayName)
 end
 
 local function formatRating(record, columnInfo)

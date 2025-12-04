@@ -1,0 +1,7 @@
+## Interface: 110205
+## Title: Hide Yellow Status Text
+## Notes: Fades the UIWidgetTopCenterContainerFrame in and out when combat status changes.
+## Author: Grymtrx
+## Version: 1.0.0
+
+HideYellowStatusText.lua

@@ -101,7 +101,7 @@ function ns.UpdateBracket(b)
 
     -- Build colored winrate string
     local color = GetWinrateColorCode(winrate)
-    local text = string.format("%d - %d (%s%.1f%%%s)", wins, losses, color, winrate, "|r")
+    local text = string.format("%d - %d  %s(%.1f%%)%s", wins, losses, color, winrate, "|r")
 
     frame.text:SetText(text)
 

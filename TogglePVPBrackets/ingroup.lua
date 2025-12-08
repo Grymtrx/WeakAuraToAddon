@@ -1,5 +1,14 @@
 local addonName = ...
 
+local function IsAddonLoadedCompat(name)
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        return C_AddOns.IsAddOnLoaded(name)
+    elseif type(IsAddOnLoaded) == "function" then
+        return IsAddOnLoaded(name)
+    end
+    return false
+end
+
 local function UpdateSoloShuffleVisibility()
     if type(TogglePVPBrackets_SetExternalVisibility) == "function" then
         if IsInGroup() then
@@ -19,7 +28,7 @@ end
 local function OnAddonLoaded(arg1)
     if arg1 == "Blizzard_PVPUI" then
         UpdateSoloShuffleVisibility()
-    elseif arg1 == addonName and IsAddOnLoaded("Blizzard_PVPUI") then
+    elseif arg1 == addonName and IsAddonLoadedCompat("Blizzard_PVPUI") then
         UpdateSoloShuffleVisibility()
     end
 end

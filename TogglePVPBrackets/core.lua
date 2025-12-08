@@ -1,5 +1,14 @@
 local addonName = ...
 
+local function IsAddonLoadedCompat(name)
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        return C_AddOns.IsAddOnLoaded(name)
+    elseif type(IsAddOnLoaded) == "function" then
+        return IsAddOnLoaded(name)
+    end
+    return false
+end
+
 local toggleCB
 local bracketCheckboxes = {}
 local showSelections = {}
@@ -171,7 +180,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:SetScript("OnEvent", function(_, _, arg1)
     if arg1 == "Blizzard_PVPUI" then
         Setup()
-    elseif arg1 == addonName and IsAddOnLoaded("Blizzard_PVPUI") then
+    elseif arg1 == addonName and IsAddonLoadedCompat("Blizzard_PVPUI") then
         Setup()
     end
 end)

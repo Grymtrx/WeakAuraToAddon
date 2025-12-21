@@ -220,14 +220,18 @@ function Addon:UpdateApplicantMemberRow(member, appID, memberIdx)
     -- Style fonts once
     self:StyleApplicantFonts(member)
 
-    local _, displayName, _, _, _, _, _, _, _, _, _, _, factionGroup =
+    local displayName, _, classTag, _, _, _, _, _, _, _, _, _, factionGroup =
         GetApplicantMemberInfo(appID, memberIdx)
 
     local factionIconPath = self:GetFactionIcon(factionGroup)
     local iconMarkup      = FormatFactionIcon(factionIconPath)
     local nameText        = displayName or member.Name:GetText() or "Unnamed"
+    local classColor      = (classTag and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classTag]) or HIGHLIGHT_FONT_COLOR
 
     member.Name:SetText(("%s %s"):format(iconMarkup, nameText))
+    if classColor then
+        member.Name:SetTextColor(classColor.r, classColor.g, classColor.b)
+    end
 
     if self:IsDeadApplication(applicantInfo) then
         member.Name:SetVertexColor(1, 1, 1, 0.4)

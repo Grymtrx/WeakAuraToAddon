@@ -36,4 +36,18 @@ rmdir "C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\PVPQTi
 > /D means directory symlink — required for folders containing files.
 > Symlinks look like normal folders, but they act as pointers.
 
-mklink /D "C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\TogglePVPBrackets" "C:\Git\WeakAuraToAddon\TogglePVPBrackets"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\TogglePVPBrackets" "D:\Git\WeakAuraToAddon\TogglePVPBrackets"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\SeasonProgress" "D:\Git\WeakAuraToAddon\SeasonProgress"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\PvPQTimer" "D:\Git\WeakAuraToAddon\PvPQTimer"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\PvPLFGPlus" "D:\Git\WeakAuraToAddon\PvPLFGPlus"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\HideYellowStatusText" "D:\Git\WeakAuraToAddon\HideYellowStatusText"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\G2D" "D:\Git\WeakAuraToAddon\G2D"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\FixTotemFrames" "D:\Git\WeakAuraToAddon\FixTotemFrames"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\EliteSetCollectionoTracker" "D:\Git\WeakAuraToAddon\EliteSetCollectionoTracker"
+mklink /D "D:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\ArenaWinrate" "D:\Git\WeakAuraToAddon\ArenaWinrate"
+
+
+
+
+
+

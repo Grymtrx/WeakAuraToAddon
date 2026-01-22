@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: Toggle PVP Brackets
 ## Notes: Toggle specific PVP brackets visibility.
 ## Author: Greymatter (Grymtrx)

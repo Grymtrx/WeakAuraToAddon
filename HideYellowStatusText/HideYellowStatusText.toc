@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: Hide Yellow Status Text
 ## Notes: Fades the UIWidgetTopCenterContainerFrame in and out when combat status changes.
 ## Author: Grymtrx

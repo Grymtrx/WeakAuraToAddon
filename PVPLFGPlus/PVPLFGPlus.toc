@@ -1,4 +1,4 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: PVPLFG+
 ## Author: Greymatter
 ## Version: 1.1.0

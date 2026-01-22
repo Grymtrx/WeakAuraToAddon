@@ -1,4 +1,4 @@
-## Interface: 110007
+## Interface: 120000
 ## Title: Elite Set Collection Tracker
 ## Notes: Tracks which PvP Elite sets have been collected per class and displays the status on the PVP panel.
 ## Author: Grymtrx

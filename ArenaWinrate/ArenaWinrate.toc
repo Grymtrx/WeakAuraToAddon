@@ -1,4 +1,4 @@
-## Interface: 110207
+## Interface: 120000
 ## Title: ArenaWinrate
 ## Notes: Displays your rated arena win/loss and winrate
 ## Author: Grymtrx
